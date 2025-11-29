@@ -64,11 +64,16 @@ export interface NodeSnapshot {
   error?: string | null;
 }
 
+export type EdgeSnapshot = {
+  source: string; // node_id
+  target: string; // node_id
+};
+
 export interface RunSnapshot {
   run_id: string;
   graph_id: string;
   nodes: NodeSnapshot[];
-  edges: { [key: string]: any }[]; // you can tighten this later
+  edges: EdgeSnapshot[];
 }
 
 export interface RunListResponse {
