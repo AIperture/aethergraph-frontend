@@ -90,3 +90,107 @@ export interface ChannelMessage {
   text: string;
   createdAt: string;
 }
+
+
+
+export interface GraphListItem {
+  graph_id: string;
+  name: string;
+  description?: string | null;
+  inputs: string[];
+  outputs: string[];
+  tags: string[];
+}
+
+export interface GraphNodeInfo {
+  id: string;
+  type: string;
+  tool_name?: string | null;
+  tool_version?: string | null;
+  expected_inputs: string[];
+  expected_outputs: string[];
+  output_keys: string[];
+}
+
+export interface GraphEdgeInfo {
+  from: string;
+  to: string;
+}
+
+export interface GraphDetail {
+  graph_id: string;
+  name: string;
+  description?: string | null;
+  inputs: string[];
+  outputs: string[];
+  tags: string[];
+  nodes: GraphNodeInfo[];
+  edges: GraphEdgeInfo[];
+}
+
+
+/* --------- Artifacts --------- */
+
+export interface ArtifactMeta {
+  artifact_id: string;
+  kind: string;
+  mime_type: string | null;
+  size: number | null;
+  scope_id: string | null;
+  tags: string[];
+  created_at: string; // ISO datetime
+  uri: string | null;
+}
+
+export interface ArtifactListResponse {
+  artifacts: ArtifactMeta[];
+  next_cursor: string | null;
+}
+
+/* --------- Memory --------- */
+
+export interface MemoryEvent {
+  event_id: string;
+  scope_id: string;
+  kind: string;
+  tags: string[];
+  created_at: string; // ISO
+  data: Record<string, unknown> | null;
+}
+
+export interface MemoryEventListResponse {
+  events: MemoryEvent[];
+  next_cursor: string | null;
+}
+
+export interface MemorySummaryEntry {
+  summary_id: string;
+  scope_id: string;
+  summary_tag: string;
+  created_at: string;
+  time_from: string;
+  time_to: string;
+  text: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface MemorySummaryListResponse {
+  summaries: MemorySummaryEntry[];
+  next_cursor: string | null;
+}
+
+export interface MemorySearchRequest {
+  query: string;
+  scope_id?: string | null;
+  top_k?: number;
+}
+
+export interface MemorySearchHit {
+  score: number;
+  event: MemoryEvent | null;
+  summary: MemorySummaryEntry | null;
+}
+
+export interface MemorySearchResponse {
+  hits: MemorySearchHit[];
+}

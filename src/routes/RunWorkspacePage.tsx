@@ -7,6 +7,9 @@ import { Button } from "../components/ui/button";
 import { Separator } from "../components/ui/separator";
 import type { NodeSnapshot, RunStatus } from "../lib/types";
 
+import { RunArtifactsPanel } from "../components/run/RunArtifactsPanel";
+import { RunMemoryPanel } from "../components/run/RunMemoryPanel";
+
 const statusChipClass = (status: RunStatus) => {
     switch (status) {
         case "running":
@@ -65,6 +68,7 @@ const RunWorkspacePage: React.FC = () => {
         };
     }, [runId, loadRunSnapshot]);
 
+
     if (!runId) {
         return (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
@@ -82,6 +86,25 @@ const RunWorkspacePage: React.FC = () => {
         const tb = b.started_at ? new Date(b.started_at).getTime() : 0;
         return ta - tb;
     });
+
+
+    const bucketedTimeline = React.useMemo(() => {
+        if (!timelineNodes.length) return [];
+        const buckets: { label: string; nodes: NodeSnapshot[] }[] = [];
+
+        for (const node of timelineNodes) {
+            const d = node.started_at ? new Date(node.started_at) : null;
+            const label = d ? d.toLocaleTimeString(undefined, { hour12: false }) : "unknown";
+
+            const last = buckets[buckets.length - 1];
+            if (last && last.label === label) {
+                last.nodes.push(node);
+            } else {
+                buckets.push({ label, nodes: [node] });
+            }
+        }
+        return buckets;
+    }, [timelineNodes]);
 
     return (
         <div className="h-full bg-background">
@@ -246,6 +269,7 @@ const RunWorkspacePage: React.FC = () => {
                     </Card>
                 )}
 
+
                 {activeTab === "timeline" && (
                     <Card className="shadow-[var(--ag-shadow-soft)]">
                         <CardHeader className="pb-2">
@@ -253,71 +277,73 @@ const RunWorkspacePage: React.FC = () => {
                                 Timeline
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground space-y-3">
-                            {timelineNodes.length === 0 ? (
+                        <CardContent className="text-xs text-muted-foreground">
+                            {bucketedTimeline.length === 0 ? (
                                 <div className="text-[11px] text-muted-foreground">
                                     No timeline events yet.
                                 </div>
                             ) : (
-                                <div className="space-y-2">
-                                    {timelineNodes.map((node) => (
-                                        <div key={node.node_id} className="flex gap-3">
-                                            <div className="w-32 text-[11px] text-muted-foreground">
-                                                {formatDate(node.started_at)}
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-foreground/80">
-                                                        {node.node_id}
-                                                    </span>
-                                                    <span
-                                                        className={
-                                                            "px-2 py-0.5 rounded-full capitalize text-[10px] " +
-                                                            statusChipClass(node.status)
-                                                        }
-                                                    >
-                                                        {node.status.replace("_", " ")}
-                                                    </span>
+                                <div className="relative">
+                                    {/* vertical rail */}
+                                    <div className="absolute left-2 top-0 bottom-0 border-l border-border/60" />
+                                    <div className="space-y-4">
+                                        {bucketedTimeline.map((bucket) => (
+                                            <div key={bucket.label} className="relative pl-8">
+                                                {/* dot */}
+                                                <div className="absolute left-1.5 top-1 w-2 h-2 rounded-full bg-brand" />
+                                                {/* time label */}
+                                                <div className="text-[11px] text-muted-foreground mb-1">
+                                                    {bucket.label}
                                                 </div>
-                                                <div className="text-[11px] text-muted-foreground">
-                                                    {node.tool_name ?? "—"} •{" "}
-                                                    {formatDate(node.started_at)} →{" "}
-                                                    {formatDate(node.finished_at)}
+                                                {/* nodes at this time */}
+                                                <div className="space-y-1">
+                                                    {bucket.nodes.map((node) => (
+                                                        <div
+                                                            key={node.node_id}
+                                                            className="rounded-md border border-border/60 bg-muted/40 px-3 py-2"
+                                                        >
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <span className="font-mono text-foreground/80">
+                                                                    {node.node_id}
+                                                                </span>
+                                                                <span
+                                                                    className={
+                                                                        "px-2 py-0.5 rounded-full capitalize text-[10px] " +
+                                                                        statusChipClass(node.status)
+                                                                    }
+                                                                >
+                                                                    {node.status.replace("_", " ")}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-1 text-[11px] text-muted-foreground">
+                                                                {node.tool_name ?? "—"} •{" "}
+                                                                {formatDate(node.started_at)} →{" "}
+                                                                {formatDate(node.finished_at)}
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
                 )}
 
-                {activeTab === "artifacts" && (
+                {activeTab === "artifacts" && runId && (
                     <Card className="shadow-[var(--ag-shadow-soft)]">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm text-card-foreground">
-                                Artifacts (coming soon)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground">
-                            This will list files, plots, and other artifacts generated during this run.
-                        </CardContent>
+                        <RunArtifactsPanel runId={runId} />
                     </Card>
                 )}
 
-                {activeTab === "memory" && (
+                {activeTab === "memory" && runId && (
                     <Card className="shadow-[var(--ag-shadow-soft)]">
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm text-card-foreground">
-                                Memory (coming soon)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground">
-                            This will show long-term summaries and key events distilled from this run.
-                        </CardContent>
+                        <RunMemoryPanel scopeId={runId} />
                     </Card>
                 )}
+
 
                 {activeTab === "channel" && (
                     <Card className="shadow-[var(--ag-shadow-soft)]">

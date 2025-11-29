@@ -5,6 +5,12 @@ import type {
   RunSummary,
   RunCreateRequest,
   RunSnapshot,
+  GraphDetail,
+  ArtifactMeta,
+  MemoryEvent,
+  MemorySummaryEntry,
+  MemorySearchHit,
+  MemorySearchResponse,
 } from "../lib/types";
 import {
   listRuns,
@@ -12,12 +18,36 @@ import {
   getRunSnapshot,
   startRun,
   cancelRun,
+  getGraphDetail,
+  listRunArtifacts,
+  listMemoryEvents,
+  listMemorySummaries,
+  searchMemory as searchMemoryApi,
+
 } from "../lib/api";
+
+// Mock data imports
+import {
+  USE_MOCKS,
+  fakeRuns,
+  fakeSnapshots,
+  fakeArtifactsByRun,
+  fakeMemoryEventsByScope,
+  fakeMemorySummariesByScope,
+  fakeMemoryHitsByScope,
+} from "./mock_data";
 
 interface ShellState {
   presets: AppPreset[];
   runs: RunSummary[];
   runSnapshots: Record<string, RunSnapshot | undefined>;
+  graphDetails: Record<string, GraphDetail | undefined>;
+
+  artifactsByRun: Record<string, ArtifactMeta[]>;
+  memoryEventsByScope: Record<string, MemoryEvent[]>;
+  memorySummariesByScope: Record<string, MemorySummaryEntry[]>;
+  memorySearchHitsByScope: Record<string, MemorySearchHit[]>;
+
 
   // selectors
   getPresetById: (id: string | undefined) => AppPreset | undefined;
@@ -36,60 +66,24 @@ interface ShellState {
   loadRunSnapshot: (runId: string) => Promise<void>;
   startRunForPreset: (presetId: string) => Promise<string>; // returns run_id
   cancelRunById: (runId: string) => Promise<void>;
+
+  // Graph details
+  getGraphDetail: (graphId: string | undefined) => GraphDetail | undefined;
+  loadGraphDetail: (graphId: string) => Promise<void>;
+
+  // Artifacts and Memory
+  loadRunArtifacts: (runId: string) => Promise<void>;
+  getRunArtifacts: (runId?: string) => ArtifactMeta[] | undefined;
+
+  loadMemoryForScope: (scopeId: string) => Promise<void>;
+  getMemoryEvents: (scopeId?: string) => MemoryEvent[] | undefined;
+  getMemorySummaries: (scopeId?: string) => MemorySummaryEntry[] | undefined;
+
+  searchMemory: (scopeId: string, query: string) => Promise<void>;
+  getMemorySearchHits: (scopeId?: string) => MemorySearchHit[] | undefined;
 }
 
-const USE_MOCKS = false; // flip to false once backend is wired
 
-const fakeRuns: RunSummary[] = [
-  {
-    run_id: "run_01",
-    graph_id: "rnd_orchestrator",
-    status: "succeeded",
-    started_at: new Date(Date.now() - 60_000 * 5).toISOString(),
-    finished_at: new Date(Date.now() - 60_000 * 2).toISOString(),
-    tags: ["rnd-orchestrator"],
-    user_id: null,
-    org_id: null,
-  },
-  {
-    run_id: "run_02",
-    graph_id: "metalens_design",
-    status: "running",
-    started_at: new Date(Date.now() - 60_000 * 3).toISOString(),
-    finished_at: null,
-    tags: ["metalens-design"],
-    user_id: null,
-    org_id: null,
-  },
-];
-
-const fakeSnapshots: Record<string, RunSnapshot> = {
-  run_02: {
-    run_id: "run_02",
-    graph_id: "metalens_design",
-    nodes: [
-      {
-        node_id: "spec_parse",
-        tool_name: "parse_spec",
-        status: "succeeded",
-        started_at: new Date(Date.now() - 60_000 * 3).toISOString(),
-        finished_at: new Date(Date.now() - 60_000 * 2.5).toISOString(),
-        outputs: null,
-        error: null,
-      },
-      {
-        node_id: "simulate",
-        tool_name: "run_simulation",
-        status: "running",
-        started_at: new Date(Date.now() - 60_000 * 2.5).toISOString(),
-        finished_at: null,
-        outputs: null,
-        error: null,
-      },
-    ],
-    edges: [{ from: "spec_parse", to: "simulate" }],
-  },
-};
 
 const initialPresets: AppPreset[] = [
   {
@@ -135,7 +129,7 @@ export const useShellStore = create<ShellState>((set, get) => {
     };
   };
 
-    // helper for initial mock runs (can't use get() yet)
+  // helper for initial mock runs (can't use get() yet)
   const attachPresetInfoInitial = (run: RunSummary): RunSummary => {
     const preset = initialPresets.find((p) => p.graphId === run.graph_id);
     return {
@@ -147,12 +141,14 @@ export const useShellStore = create<ShellState>((set, get) => {
 
   return {
     presets: initialPresets,
-    // runs: initialRuns,
-    // runSnapshots: {},
-
     runs: USE_MOCKS ? fakeRuns.map(attachPresetInfoInitial) : [],
-
     runSnapshots: USE_MOCKS ? fakeSnapshots : {},
+    graphDetails: {},
+    artifactsByRun: USE_MOCKS ? fakeArtifactsByRun : {},
+    memoryEventsByScope: USE_MOCKS ? fakeMemoryEventsByScope : {},
+    memorySummariesByScope: USE_MOCKS ? fakeMemorySummariesByScope : {},
+    memorySearchHitsByScope: USE_MOCKS ? fakeMemoryHitsByScope : {},
+
 
     // selectors
     getPresetById: (id) =>
@@ -173,6 +169,7 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getRunSnapshot: (runId) => {
       if (!runId) return undefined;
+      // console.log("returned snapshot for runId", runId, get().runSnapshots[runId]);
       return get().runSnapshots[runId];
     },
 
@@ -268,5 +265,119 @@ export const useShellStore = create<ShellState>((set, get) => {
         get().upsertRun({ ...run, status: "cancellation_requested" });
       }
     },
+
+
+    getGraphDetail: (graphId) =>
+      graphId ? get().graphDetails[graphId] : undefined,
+
+    loadGraphDetail: async (graphId: string) => {
+      const existing = get().graphDetails[graphId];
+      if (existing) return; // simple memoization
+
+      const detail = await getGraphDetail(graphId);
+      set((state) => ({
+        graphDetails: { ...state.graphDetails, [graphId]: detail },
+      }));
+    },
+
+    /* -------- Artifacts actions -------- */
+
+    loadRunArtifacts: async (runId: string) => {
+      if (USE_MOCKS) return;
+      try {
+        const res = await listRunArtifacts(runId);
+        set((state) => ({
+          artifactsByRun: {
+            ...state.artifactsByRun,
+            [runId]: res.artifacts,
+          },
+        }));
+      } catch (err) {
+        console.error("Failed to load artifacts for run", runId, err);
+      }
+    },
+
+
+    getRunArtifacts: (runId?: string) => {
+      if (!runId) return undefined;
+      return get().artifactsByRun[runId];
+    },
+
+    /* -------- Memory actions -------- */
+
+    loadMemoryForScope: async (scopeId: string) => {
+      if (USE_MOCKS) return;
+      try {
+        const [eventsRes, summariesRes] = await Promise.all([
+          listMemoryEvents(scopeId, { limit: 50 }),
+          listMemorySummaries(scopeId, { limit: 50 }),
+        ]);
+
+        set((state) => ({
+          memoryEventsByScope: {
+            ...state.memoryEventsByScope,
+            [scopeId]: eventsRes.events,
+          },
+          memorySummariesByScope: {
+            ...state.memorySummariesByScope,
+            [scopeId]: summariesRes.summaries,
+          },
+        }));
+      } catch (err) {
+        console.error("Failed to load memory for scope", scopeId, err);
+      }
+    },
+
+    getMemoryEvents: (scopeId?: string) => {
+      if (!scopeId) return undefined;
+      return get().memoryEventsByScope[scopeId];
+    },
+
+    getMemorySummaries: (scopeId?: string) => {
+      if (!scopeId) return undefined;
+      return get().memorySummariesByScope[scopeId];
+    },
+
+    searchMemory: async (scopeId: string, query: string) => {
+      if (!query) {
+        set((state) => ({
+          memorySearchHitsByScope: {
+            ...state.memorySearchHitsByScope,
+            [scopeId]: [],
+          },
+        }));
+        return;
+      }
+
+      if (USE_MOCKS) {
+        set((state) => ({
+          memorySearchHitsByScope: {
+            ...state.memorySearchHitsByScope,
+            [scopeId]: fakeMemoryHitsByScope[scopeId] ?? [],
+          },
+        }));
+        return;
+      }
+
+      try {
+        const res = await searchMemoryApi({ scope_id: scopeId, query, top_k: 10 });
+        set((state) => ({
+          memorySearchHitsByScope: {
+            ...state.memorySearchHitsByScope,
+            [scopeId]: res.hits,
+          },
+        }));
+      } catch (err) {
+        console.error("Failed to search memory for scope", scopeId, err);
+      }
+    },
+
+
+    getMemorySearchHits: (scopeId?: string) => {
+      if (!scopeId) return undefined;
+      return get().memorySearchHitsByScope[scopeId];
+    },
+
   };
+
 });

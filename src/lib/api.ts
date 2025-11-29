@@ -5,9 +5,18 @@ import type {
   RunCreateRequest,
   RunCreateResponse,
   RunSnapshot,
+  GraphListItem,
+  GraphDetail,
+  ArtifactListResponse,
+  MemoryEventListResponse,
+  MemorySummaryListResponse,
+  MemorySearchRequest,
+  MemorySearchResponse,
+  
 } from "./types";
 
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relative or absolute
+
 
 export async function listRuns(): Promise<RunListResponse> {
   const res = await fetch(`${API_BASE}/runs`);
@@ -48,4 +57,100 @@ export async function cancelRun(runId: string): Promise<void> {
     method: "POST",
   });
   if (!res.ok) throw new Error("Failed to cancel run");
+}
+
+
+export async function listGraphs(): Promise<GraphListItem[]> {
+  const res = await fetch(`${API_BASE}/graphs`);
+  if (!res.ok) throw new Error("Failed to list graphs");
+  return res.json();
+}
+
+export async function getGraphDetail(graphId: string): Promise<GraphDetail> {
+  const res = await fetch(`${API_BASE}/graphs/${graphId}`);
+  if (!res.ok) throw new Error("Failed to fetch graph detail");
+  return res.json();
+}
+
+
+
+
+export async function listRunArtifacts(
+  runId: string
+): Promise<ArtifactListResponse> {
+  const res = await fetch(`${API_BASE}/runs/${runId}/artifacts`);
+  if (!res.ok) throw new Error("Failed to list run artifacts");
+  return res.json();
+}
+
+// If you want a global artifacts view later:
+// export async function listArtifacts(params?: { scope_id?: string; kind?: string; tags?: string; limit?: number }): Promise<ArtifactListResponse> {
+//   const url = new URL(`${API_BASE}/artifacts`);
+//   if (params?.scope_id) url.searchParams.set("scope_id", params.scope_id);
+//   if (params?.kind) url.searchParams.set("kind", params.kind);
+//   if (params?.tags) url.searchParams.set("tags", params.tags);
+//   if (params?.limit) url.searchParams.set("limit", String(params.limit));
+//   const res = await fetch(url.toString());
+//   if (!res.ok) throw new Error("Failed to list artifacts");
+//   return res.json();
+// }
+
+/* ---------------- Memory ---------------- */
+
+export async function listMemoryEvents(
+  scopeId: string,
+  params?: {
+    kinds?: string;
+    tags?: string;
+    limit?: number;
+  }
+): Promise<MemoryEventListResponse> {
+  const search = new URLSearchParams();
+  console.log("url search params before setting scopeId:", search.toString());
+  search.set("scope_id", scopeId);
+  if (params?.kinds) search.set("kinds", params.kinds);
+  if (params?.tags) search.set("tags", params.tags);
+  if (params?.limit) search.set("limit", String(params.limit));
+
+  const qs = search.toString();
+  const url = `${API_BASE}/memory/events${qs ? `?${qs}` : ""}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to list memory events");
+  return res.json();
+}
+
+
+export async function listMemorySummaries(
+  scopeId: string,
+  params?: {
+    summary_tag?: string;
+    limit?: number;
+  }
+): Promise<MemorySummaryListResponse> {
+  const search = new URLSearchParams();
+
+  search.set("scope_id", scopeId);
+  if (params?.summary_tag) search.set("summary_tag", params.summary_tag);
+  if (params?.limit) search.set("limit", String(params.limit));
+
+  const qs = search.toString();
+  const url = `${API_BASE}/memory/summaries${qs ? `?${qs}` : ""}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to list memory summaries");
+  return res.json();
+}
+
+
+export async function searchMemory(
+  req: MemorySearchRequest
+): Promise<MemorySearchResponse> {
+  const res = await fetch(`${API_BASE}/memory/search`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(req),
+  });
+  if (!res.ok) throw new Error("Failed to search memory");
+  return res.json();
 }

@@ -3,11 +3,31 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { useShellStore } from "../store/shellStore";
+
+const presets = [
+  {
+    id: "rnd-orchestrator",
+    name: "R&D Orchestrator",
+    description: "Coordinate multi-step simulation + analysis workflows with resumable runs.",
+    badge: "Recommended",
+  },
+  {
+    id: "metalens-design",
+    name: "Metalens Design Loop",
+    description:
+      "From spec → meta-atoms → surrogate model → lens → image analysis. Great for optics demos.",
+    badge: "Optics",
+  },
+  {
+    id: "game-agent",
+    name: "Game Agent Loop",
+    description:
+      "Simulate environment → agent reactions → user feedback. Experimental agentic gameplay loop.",
+    badge: "Experimental",
+  },
+];
 
 const AppGalleryPage: React.FC = () => {
-  const presets = useShellStore((s) => s.presets);
-
   return (
     <div className="h-full bg-background">
       <div className="h-full max-w-5xl mx-auto px-4 py-4 space-y-4">
@@ -31,14 +51,14 @@ const AppGalleryPage: React.FC = () => {
                   <CardTitle className="text-sm text-card-foreground">
                     {preset.name}
                   </CardTitle>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent uppercase tracking-wide">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent">
                     {preset.badge}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="pb-2">
                 <p className="text-xs text-muted-foreground">
-                  {preset.shortDescription}
+                  {preset.description}
                 </p>
               </CardContent>
               <CardFooter className="pt-2 flex justify-end">
@@ -56,7 +76,7 @@ const AppGalleryPage: React.FC = () => {
         </div>
 
         <div className="text-xs text-muted-foreground">
-          Presets are currently loaded from an in-memory store. Later this can be driven by backend config.
+          This is static mock data. Later, presets can be fetched from the backend or a config file.
         </div>
       </div>
     </div>

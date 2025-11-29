@@ -27,16 +27,11 @@ const PresetRunnerPage: React.FC = () => {
   // };
 
 
-  const handleStartRun = async () => {
+  const handleStartRun = () => {
     if (!appId) return;
-    try {
-      const newRunId = await startRunForPreset(appId);
-      navigate(`/runs/${newRunId}`);
-    } catch (err) {
-      console.error("Failed to start run", err);
-      // later: toast
-    }
+    navigate(`/apps/${appId}/run`);
   };
+
 
   if (!preset) {
     return (
@@ -70,7 +65,7 @@ const PresetRunnerPage: React.FC = () => {
             className="px-3"
             onClick={handleStartRun}
           >
-            Start new run
+            Configure & start
           </Button>
           <Button variant="outline" size="sm" asChild>
             <a
