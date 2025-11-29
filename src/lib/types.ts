@@ -194,3 +194,52 @@ export interface MemorySearchHit {
 export interface MemorySearchResponse {
   hits: MemorySearchHit[];
 }
+
+
+// ---- Stats ----
+
+export interface StatsOverview {
+  llm_calls: number;
+  llm_prompt_tokens: number;
+  llm_completion_tokens: number;
+
+  runs: number;
+  runs_succeeded: number;
+  runs_failed: number;
+
+  artifacts: number;
+  artifact_bytes: number;
+
+  events: number;
+}
+
+export interface GraphStatsEntry {
+  runs: number;
+  succeeded: number;
+  failed: number;
+  total_duration_s: number;
+}
+
+export type GraphStats = Record<string, GraphStatsEntry>;
+
+export interface MemoryStats {
+  [kind: string]: { count: number };
+}
+
+export interface ArtifactStatsEntry {
+  count: number;
+  bytes: number;
+  pinned_count: number;
+  pinned_bytes: number;
+}
+
+export type ArtifactStats = Record<string, ArtifactStatsEntry>;
+
+export interface LLMStatsEntry {
+  calls: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+}
+
+
+export type LLMStats = Record<string, LLMStatsEntry>;

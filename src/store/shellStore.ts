@@ -10,7 +10,12 @@ import type {
   MemoryEvent,
   MemorySummaryEntry,
   MemorySearchHit,
-  MemorySearchResponse,
+  StatsOverview,
+  GraphStats,
+  LLMStats,
+  MemoryStats,
+  ArtifactStats,
+
 } from "../lib/types";
 import {
   listRuns,
@@ -23,6 +28,11 @@ import {
   listMemoryEvents,
   listMemorySummaries,
   searchMemory as searchMemoryApi,
+  getStatsOverview,
+  getGraphStats,
+  getLLMStats,
+  getMemoryStats,
+  getArtifactStats,
 
 } from "../lib/api";
 
@@ -48,6 +58,16 @@ interface ShellState {
   memorySummariesByScope: Record<string, MemorySummaryEntry[]>;
   memorySearchHitsByScope: Record<string, MemorySearchHit[]>;
 
+  statsOverview: StatsOverview | null;
+  graphStats: GraphStats | null;
+  memoryStats: MemoryStats | null;
+  artifactStats: ArtifactStats | null;
+  llmStats: LLMStats | null;
+  loadingStats: boolean;
+  statsWindow: string;
+
+
+  loadStats: (window?: string) => Promise<void>;
 
   // selectors
   getPresetById: (id: string | undefined) => AppPreset | undefined;
@@ -149,6 +169,42 @@ export const useShellStore = create<ShellState>((set, get) => {
     memorySummariesByScope: USE_MOCKS ? fakeMemorySummariesByScope : {},
     memorySearchHitsByScope: USE_MOCKS ? fakeMemoryHitsByScope : {},
 
+    statsOverview: null,
+    graphStats: null,
+    memoryStats: null,
+    artifactStats: null,
+    llmStats: null,
+    loadingStats: false,
+    statsWindow: "24h",
+
+
+    loadStats: async (window = "24h") => {
+      const { loadingStats } = get();
+      if (loadingStats) return; // simple guard
+
+      set({ loadingStats: true, statsWindow: window });
+      try {
+        const [overview, graphs, memory, artifacts, llm] = await Promise.all([
+          getStatsOverview(window),
+          getGraphStats(window),
+          getMemoryStats(window),
+          getArtifactStats(window),
+          getLLMStats(window),
+        ]);
+
+        set({
+          statsOverview: overview,
+          graphStats: graphs,
+          memoryStats: memory,
+          artifactStats: artifacts,
+          llmStats: llm,
+          loadingStats: false,
+        });
+      } catch (err) {
+        console.error("Failed to load stats", err);
+        set({ loadingStats: false });
+      }
+    },
 
     // selectors
     getPresetById: (id) =>

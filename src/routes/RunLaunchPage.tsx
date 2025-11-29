@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useShellStore } from "../store/shellStore";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Textarea } from "../components/ui/textarea";  
+import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import type { RunCreateRequest } from "../lib/types";
 import { startRun } from "../lib/api";
@@ -74,6 +74,66 @@ const RunLaunchPage: React.FC = () => {
       console.error(err);
       setError(err.message || "Failed to start run");
     } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  const handleStart_ = async () => {
+    setError(null);
+
+    // Don’t block the UI on the request finishing
+    setIsSubmitting(true);
+
+    try {
+      let inputs: Record<string, any>;
+      let runConfig: Record<string, any>;
+
+      try {
+        inputs = JSON.parse(inputsText || "{}");
+      } catch {
+        throw new Error("Inputs must be valid JSON");
+      }
+      try {
+        runConfig = JSON.parse(runConfigText || "{}");
+      } catch {
+        throw new Error("Run config must be valid JSON");
+      }
+
+      // 1) Generate a run_id on the client
+      const runId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `run-${Math.random().toString(16).slice(2)}`;
+
+      const body: RunCreateRequest = {
+        run_id: runId,     // <<–– key change
+        inputs,
+        run_config: runConfig,
+        tags: [preset.id],
+      };
+
+      // 2) Optimistically navigate *immediately* so the user sees the workspace
+      navigate(`/runs/${runId}`);
+
+      // 3) Fire the request in the background
+      //    (we still await here so errors go to console / future toast,
+      //     but navigation already happened)
+      startRun(graphId, body)
+        .then((resp) => {
+          // optional: you can reconcile run_id if the backend overrides it
+          // console.log("run started", resp.run_id);
+        })
+        .catch((err) => {
+          console.error("Failed to start run", err);
+          // later: show a toast on the workspace page
+        })
+        .finally(() => {
+          setIsSubmitting(false);
+        });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to start run");
       setIsSubmitting(false);
     }
   };

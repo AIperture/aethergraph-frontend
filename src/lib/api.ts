@@ -12,6 +12,11 @@ import type {
   MemorySummaryListResponse,
   MemorySearchRequest,
   MemorySearchResponse,
+  StatsOverview,
+  GraphStats,
+  MemoryStats,
+  ArtifactStats,
+  LLMStats,
   
 } from "./types";
 
@@ -152,5 +157,57 @@ export async function searchMemory(
     body: JSON.stringify(req),
   });
   if (!res.ok) throw new Error("Failed to search memory");
+  return res.json();
+}
+
+
+// --- Stats ---
+
+export async function getStatsOverview(
+  window = "24h"
+): Promise<StatsOverview> {
+  const search = new URLSearchParams({ window });
+  const res = await fetch(`${API_BASE}/stats/overview?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch stats overview");
+  return res.json();
+}
+
+export async function getGraphStats(
+  window = "24h",
+  graphId?: string
+): Promise<GraphStats> {
+  const search = new URLSearchParams({ window });
+  if (graphId) search.set("graph_id", graphId);
+  const res = await fetch(`${API_BASE}/stats/graphs?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch graph stats");
+  return res.json();
+}
+
+export async function getMemoryStats(
+  window = "24h",
+  scopeId?: string
+): Promise<MemoryStats> {
+  const search = new URLSearchParams({ window });
+  if (scopeId) search.set("scope_id", scopeId);
+  const res = await fetch(`${API_BASE}/stats/memory?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch memory stats");
+  return res.json();
+}
+
+export async function getArtifactStats(
+  window = "24h"
+): Promise<ArtifactStats> {
+  const search = new URLSearchParams({ window });
+  const res = await fetch(`${API_BASE}/stats/artifacts?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch artifact stats");
+  return res.json();
+}
+
+export async function getLLMStats(
+  window = "24h"
+): Promise<LLMStats> {
+  const search = new URLSearchParams({ window });
+  const res = await fetch(`${API_BASE}/stats/llm?${search.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch LLM stats");
   return res.json();
 }

@@ -8,23 +8,22 @@ import { Button } from "../components/ui/button";
 import { useShellStore } from "../store/shellStore";
 import type { RunSummary } from "../lib/types";
 
+
 const DashboardPage: React.FC = () => {
-  // Store slices
+  // Subscribe to slices individually (no object selector)
   const runs = useShellStore((s) => s.runs);
   const statsOverview = useShellStore((s) => s.statsOverview);
   const graphStats = useShellStore((s) => s.graphStats);
-  const artifactStats = useShellStore((s) => s.artifactStats);
-  const memoryStats = useShellStore((s) => s.memoryStats);
   const loadingStats = useShellStore((s) => s.loadingStats);
   const loadStats = useShellStore((s) => s.loadStats);
 
-  // Initial load
+  // Run once on mount – we *know* loadStats is stable from Zustand
   React.useEffect(() => {
     loadStats("24h");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ---- Derived run stats ----
+  // Derived run stats
   const activeCount = runs.filter((r) => r.status === "running").length;
   const totalRuns = runs.length;
 
@@ -52,39 +51,11 @@ const DashboardPage: React.FC = () => {
 
   const llmCallsLast24h = statsOverview?.llm_calls ?? 0;
 
-  // ---- Derived artifact stats ----
-  const { totalArtifacts, totalArtifactMB } = React.useMemo(() => {
-    if (!artifactStats) return { totalArtifacts: 0, totalArtifactMB: 0 };
-
-    let count = 0;
-    let bytes = 0;
-
-    Object.values(artifactStats).forEach((entry) => {
-      count += entry.count ?? 0;
-      bytes += entry.bytes ?? 0;
-    });
-
-    return {
-      totalArtifacts: count,
-      totalArtifactMB: bytes > 0 ? bytes / (1024 * 1024) : 0,
-    };
-  }, [artifactStats]);
-
-  // ---- Derived memory stats ----
-  const totalMemoryEvents = React.useMemo(() => {
-    if (!memoryStats) return 0;
-
-    let total = 0;
-    Object.values(memoryStats).forEach((entry) => {
-      // entry is { count: number, ... }
-      total += entry.count ?? 0;
-    });
-    return total;
-  }, [memoryStats]);
 
   return (
     <div className="h-full bg-background">
       <div className="h-full max-w-6xl mx-auto px-4 py-4 space-y-4">
+        {/* Header */}
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -92,7 +63,7 @@ const DashboardPage: React.FC = () => {
               AetherGraph Dashboard
             </h1>
             <p className="text-sm text-muted-foreground">
-              Holistic overview of all runs, storage, and memory activity.
+              Holistic overview of all runs across presets and agents.
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -111,8 +82,8 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Top stats: runs + LLM + artifacts + memory */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Top stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FakeStatsCard
             label="Active runs"
             value={String(activeCount)}
@@ -126,22 +97,14 @@ const DashboardPage: React.FC = () => {
           <FakeStatsCard
             label="LLM calls"
             value={String(llmCallsLast24h)}
-            hint="Past 24 hours"
-          />
-          <FakeStatsCard
-            label="Artifacts"
-            value={
-              totalArtifacts > 0
-                ? `${totalArtifacts} · ${totalArtifactMB.toFixed(1)} MB`
-                : "0"
-            }
-            hint="Total artifacts + storage"
+            hint="Past 24 hours (metering)"
           />
         </div>
 
 
-        {/* Bottom grid – recent runs + channel mock (unchanged) */}
+        {/* Bottom grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Recent runs */}
           <Card className="lg:col-span-2 shadow-[var(--ag-shadow-soft)]">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-card-foreground">
@@ -179,26 +142,25 @@ const DashboardPage: React.FC = () => {
                       run.status === "failed"
                         ? "px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
                         : run.status === "running"
-                        ? "px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                        : "px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          ? "px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                          : "px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                     }
                   >
                     {run.status}
                   </span>
                   <span className="text-muted-foreground">
                     {run.started_at && run.finished_at
-                      ? `${Math.round(
-                          (new Date(run.finished_at).getTime() -
-                            new Date(run.started_at).getTime()) /
-                            1000
-                        )}s`
-                      : "-"}
+                      ? Math.round(
+                        (new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000
+                      )
+                      : "-"}s
                   </span>
                 </div>
               ))}
             </CardContent>
           </Card>
 
+          {/* Channel mock (unchanged) */}
           <Card className="shadow-[var(--ag-shadow-soft)]">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-card-foreground">
