@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { useChannelStore } from "../store/channelStore";
 import { useShellStore } from "../store/shellStore";
 
 export const Sidebar: React.FC = () => {
@@ -10,6 +11,10 @@ export const Sidebar: React.FC = () => {
 
   const isOnDashboard = location.pathname === "/";
   const isOnAppsRoot = location.pathname === "/apps";
+
+  const runs = useShellStore((s) => s.runs);
+  const unreadByRunId = useChannelStore((s) => s.unreadByRunId);
+  const messagesByRunId = useChannelStore((s) => s.messagesByRunId);
 
   // Helper to detect active preset by path, e.g. /apps/metalens-design
   const activeAppId =
@@ -90,17 +95,46 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Channels (still mock for now) */}
+        {/* Channels */}
         <div>
           <div className="px-2 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Channels
           </div>
           <ul className="space-y-1 text-xs text-muted-foreground">
-            <li className="px-3 py-1 rounded-md hover:bg-sidebar-accent/50 cursor-default">
-              # lab-rnd-session-1
-            </li>
-            <li className="px-3 py-1 rounded-md hover:bg-sidebar-accent/50 cursor-default">
-              # demo-metalens
-            </li>
+            {runs
+              // only show runs that actually have channel messages
+              .filter((r) => messagesByRunId[r.run_id]?.length)
+              .slice(0, 6) // demo: top 6 recent
+              .map((r) => {
+                const unread = unreadByRunId[r.run_id] ?? 0;
+                const shortId = r.run_id.slice(0, 6);
+
+                return (
+                  <li key={r.run_id}>
+                    <Link
+                      to={`/runs/${r.run_id}?tab=channel`}
+                      className={cn(
+                        "px-3 py-1 rounded-md flex items-center justify-between hover:bg-sidebar-accent/50"
+                      )}
+                    >
+                      <span className="truncate">
+                        # ui-run-{shortId}
+                      </span>
+                      {unread > 0 && (
+                        <span className="ml-2 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] bg-brand text-white">
+                          {unread}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            {/* optional: empty state */}
+            {runs.filter((r) => messagesByRunId[r.run_id]?.length).length === 0 && (
+              <li className="px-3 py-1 rounded-md text-[11px] text-muted-foreground">
+                No active channels yet.
+              </li>
+            )}
           </ul>
         </div>
       </nav>

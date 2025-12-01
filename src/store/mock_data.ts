@@ -56,7 +56,7 @@ export const fakeSnapshots: Record<string, RunSnapshot> = {
         error: null,
       },
     ],
-    edges: [{ from: "spec_parse", to: "simulate" }],
+    edges: [{ source: "spec_parse", target: "simulate" }],
   },
 };
 

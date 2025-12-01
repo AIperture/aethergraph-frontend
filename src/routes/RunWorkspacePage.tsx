@@ -1,6 +1,6 @@
 // src/routes/RunWorkspacePage.tsx
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useShellStore } from "../store/shellStore";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -9,11 +9,21 @@ import type { NodeSnapshot, RunStatus, EdgeSnapshot } from "../lib/types";
 import { RunArtifactsPanel } from "../components/run/RunArtifactsPanel";
 import { RunMemoryPanel } from "../components/run/RunMemoryPanel";
 import { RunTimelinePanel } from "../components/run/RunTimelinePanel";
+import { RunChannelPanel } from "../components/run/RunChannelPanel";
+
 import { RunNodesPanel } from "../components/run/RunNodesPanel";
 import { statusChipClass, formatDate } from "../components/run/runStatusUtils";
+import { useChannelStore } from "../store/channelStore";
 
 const RunWorkspacePage: React.FC = () => {
     const { runId } = useParams<{ runId: string }>();
+    const [searchParams, setSearchParams] = useSearchParams();
+    type TabKey = "nodes" | "timeline" | "artifacts" | "memory" | "channel";
+
+    const urlTab = (searchParams.get("tab") as TabKey | null) || "nodes";
+    const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "channel"];
+    const initialTab: TabKey = validTabs.includes(urlTab) ? urlTab : "nodes";
+
     const loadRunSnapshot = useShellStore((s) => s.loadRunSnapshot);
     const cancelRunById = useShellStore((s) => s.cancelRunById);
     const runSummary = useShellStore((s) => s.getRunById(runId));
@@ -22,6 +32,57 @@ const RunWorkspacePage: React.FC = () => {
     const [activeTab, setActiveTab] = React.useState<
         "nodes" | "timeline" | "artifacts" | "memory" | "channel"
     >("nodes");
+
+    const setActiveRunId = useChannelStore((s) => s.setActiveRunId);
+
+    const fetchNewEvents = useChannelStore((s) => s.fetchNewEvents);
+    const unreadForRun = useChannelStore((s) =>
+        runId ? s.getUnreadForRun(runId) : 0
+    );
+
+    // Sync activeTab with URL param
+    React.useEffect(() => {
+        const param = searchParams.get("tab") as TabKey | null;
+        if (param && param !== activeTab && validTabs.includes(param)) {
+            setActiveTab(param);
+        }
+    }, [searchParams, activeTab]);
+
+    // Poll for new channel events -- later we will use websockets and move this logic into channelStore
+    React.useEffect(() => {
+        if (!runId) return;
+
+        let cancelled = false;
+
+        const tick = async () => {
+            if (cancelled) return;
+            try {
+                await fetchNewEvents(runId);
+            } catch (err) {
+                console.error("Failed to fetch channel events for run", runId, err);
+            }
+        };
+
+        void tick(); // initial fetch
+        const id = window.setInterval(tick, 1500);
+
+        return () => {
+            cancelled = true;
+            clearInterval(id);
+        };
+    }, [runId, fetchNewEvents]);
+
+    // Tell channelStore which run's channel is in focus
+    React.useEffect(() => {
+        if (!runId) return;
+
+        if (activeTab === "channel") {
+            setActiveRunId(runId);
+        } else {
+            // if we navigate away from this run's channel, clear active
+            setActiveRunId(null);
+        }
+    }, [runId, activeTab, setActiveRunId]);
 
     // Poll for snapshot + summary
     React.useEffect(() => {
@@ -53,6 +114,21 @@ const RunWorkspacePage: React.FC = () => {
             </div>
         );
     }
+
+    const handleTabClick = (tab: TabKey) => {
+        setActiveTab(tab);
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (tab === "nodes") {
+                // optional: clean URL by dropping ?tab when on default tab
+                next.delete("tab");
+            } else {
+                next.set("tab", tab);
+            }
+            return next;
+        });
+    };
+
 
     const status: RunStatus =
         runSummary?.status ?? (snapshot ? "running" : "pending");
@@ -112,20 +188,20 @@ const RunWorkspacePage: React.FC = () => {
                 <div className="flex items-center gap-2 border-b border-border">
                     <button
                         type="button"
-                        onClick={() => setActiveTab("nodes")}
+                        onClick={() => handleTabClick("nodes")}
                         className={`text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "nodes"
-                                ? "border-brand text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "border-brand text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                     >
                         Nodes
                     </button>
                     <button
                         type="button"
-                        onClick={() => setActiveTab("timeline")}
+                        onClick={() => handleTabClick("timeline")}
                         className={`text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "timeline"
-                                ? "border-brand text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "border-brand text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                     >
                         Timeline
@@ -133,10 +209,10 @@ const RunWorkspacePage: React.FC = () => {
 
                     <button
                         type="button"
-                        onClick={() => setActiveTab("artifacts")}
+                        onClick={() => handleTabClick("artifacts")}
                         className={`text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "artifacts"
-                                ? "border-brand text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "border-brand text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                     >
                         Artifacts
@@ -144,25 +220,30 @@ const RunWorkspacePage: React.FC = () => {
 
                     <button
                         type="button"
-                        onClick={() => setActiveTab("memory")}
+                        onClick={() => handleTabClick("memory")}
                         className={`text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "memory"
-                                ? "border-brand text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
+                            ? "border-brand text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                     >
                         Memory
                     </button>
-
                     <button
                         type="button"
-                        onClick={() => setActiveTab("channel")}
-                        className={`text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "channel"
+                        onClick={() => handleTabClick("channel")}
+                        className={`relative text-xs px-3 py-2 border-b-2 -mb-px ${activeTab === "channel"
                                 ? "border-brand text-foreground"
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                             }`}
                     >
                         Channel
+                        {unreadForRun > 0 && (
+                            <span className="ml-1 inline-flex items-center justify-center">
+                                <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+                            </span>
+                        )}
                     </button>
+
                 </div>
 
                 {/* Content */}
@@ -186,21 +267,11 @@ const RunWorkspacePage: React.FC = () => {
                     <Card className="shadow-[var(--ag-shadow-soft)]">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm text-card-foreground">
-                                Channel (coming soon)
+                                Channel
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="text-xs text-muted-foreground space-y-2">
-                            <div className="text-[11px] text-muted-foreground mb-1">
-                                # example-channel
-                            </div>
-                            <div>
-                                <span className="font-semibold text-foreground">you</span>{" "}
-                                <span className="text-muted-foreground">· just now</span>
-                                <div className="mt-1">
-                                    “This will eventually show the chat or Slack thread linked to
-                                    this run.”
-                                </div>
-                            </div>
+                        <CardContent>
+                            <RunChannelPanel runId={runId} />
                         </CardContent>
                     </Card>
                 )}

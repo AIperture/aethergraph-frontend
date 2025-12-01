@@ -17,6 +17,7 @@ import type {
   MemoryStats,
   ArtifactStats,
   LLMStats,
+  RunChannelEvent
   
 } from "./types";
 
@@ -209,5 +210,44 @@ export async function getLLMStats(
   const search = new URLSearchParams({ window });
   const res = await fetch(`${API_BASE}/stats/llm?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch LLM stats");
+  return res.json();
+}
+
+
+// GET /api/v1/runs/{run_id}/channel/events?since_ts=...
+export async function listRunChannelEvents(
+  runId: string,
+  sinceTs?: number
+): Promise<RunChannelEvent[]> {
+  const params: Record<string, any> = {};
+  if (sinceTs != null) params.since_ts = sinceTs;
+  
+  const res = await fetch(`/api/v1/runs/${runId}/channel/events?${new URLSearchParams(params)}`, {
+    method: "GET",
+  });
+  // assuming backend returns a plain array of events
+  if (!res.ok) throw new Error("Failed to fetch run channel events");
+  return res.json() as Promise<RunChannelEvent[]>;
+}
+
+export interface SendRunChannelMessageRequest {
+  text?: string;
+  choice?: string;
+  meta?: Record<string, any>;
+  // later: files
+}
+
+// POST /api/v1/runs/{run_id}/channel/incoming
+export async function sendRunChannelMessage(
+  runId: string,
+  payload: SendRunChannelMessageRequest
+): Promise<{ ok: boolean; resumed: boolean }> {
+
+  const res = await fetch(`${API_BASE}/runs/${runId}/channel/incoming`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Failed to send channel message");
   return res.json();
 }

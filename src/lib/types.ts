@@ -248,3 +248,37 @@ export interface LLMStatsEntry {
 
 
 export type LLMStats = Record<string, LLMStatsEntry>;
+
+
+// ---------- Channel Messages ----------
+// lib/types.ts
+
+export interface ChannelButton {
+  label: string | null;
+  value: string | null;
+  style?: string | null;
+  url?: string | null;
+}
+
+export interface ChannelFile {
+  id?: string;
+  name?: string;
+  mimetype?: string;
+  size?: number;
+  uri?: string | null;
+  url?: string | null;
+  // meta if needed later
+  [key: string]: any;
+}
+
+export interface RunChannelEvent {
+  id: string;
+  run_id: string;
+  type: string; // e.g. "agent.message", "session.need_input", "session.need_approval"
+  text?: string | null;
+  buttons?: ChannelButton[];
+  file?: ChannelFile | null;
+  meta?: Record<string, any>;
+  ts: number; // unix timestamp (seconds or ms, but treat as number)
+}
+
