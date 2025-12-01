@@ -11,6 +11,7 @@ export const Sidebar: React.FC = () => {
 
   const isOnDashboard = location.pathname === "/";
   const isOnAppsRoot = location.pathname === "/apps";
+  const isOnArtifacts = location.pathname === "/artifacts";
 
   const runs = useShellStore((s) => s.runs);
   const unreadByRunId = useChannelStore((s) => s.unreadByRunId);
@@ -51,6 +52,18 @@ export const Sidebar: React.FC = () => {
         >
           Apps
         </Link>
+
+        <Link
+          to="/artifacts"
+          className={cn(
+            "block px-2 py-1 rounded-md hover:bg-sidebar-accent/60",
+            isOnArtifacts && "bg-sidebar-accent text-sidebar-foreground"
+          )}
+        >
+          Artifacts
+        </Link>
+
+        
       </div>
 
       {/* Content */}

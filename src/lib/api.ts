@@ -88,18 +88,53 @@ export async function listRunArtifacts(
   if (!res.ok) throw new Error("Failed to list run artifacts");
   return res.json();
 }
+/**
+ * Convenience helper: URL to stream artifact content.
+ * Use in <img>, <a href>, or fetch() calls.
+ */
+export function getArtifactContentUrl(artifactId: string): string {
+  return `${API_BASE}/artifacts/${artifactId}/content`;
+}
 
-// If you want a global artifacts view later:
-// export async function listArtifacts(params?: { scope_id?: string; kind?: string; tags?: string; limit?: number }): Promise<ArtifactListResponse> {
-//   const url = new URL(`${API_BASE}/artifacts`);
-//   if (params?.scope_id) url.searchParams.set("scope_id", params.scope_id);
-//   if (params?.kind) url.searchParams.set("kind", params.kind);
-//   if (params?.tags) url.searchParams.set("tags", params.tags);
-//   if (params?.limit) url.searchParams.set("limit", String(params.limit));
-//   const res = await fetch(url.toString());
-//   if (!res.ok) throw new Error("Failed to list artifacts");
-//   return res.json();
-// }
+export async function fetchArtifactTextContent(
+  artifactId: string
+): Promise<string> {
+  const res = await fetch(getArtifactContentUrl(artifactId));
+  if (!res.ok) throw new Error("Failed to load artifact content");
+  return res.text();
+}
+
+
+
+export async function pinArtifactApi(
+  artifactId: string,
+  pinned: boolean
+): Promise<void> {
+  const res = await fetch(`${API_BASE}/artifacts/${artifactId}/pin`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(pinned),
+  });
+  if (!res.ok) throw new Error("Failed to pin artifact");
+}
+
+export async function listArtifacts(params?: {
+  scopeId?: string;
+  kind?: string;
+  tags?: string; // comma-separated
+  limit?: number;
+}): Promise<ArtifactListResponse> {
+  const query = new URLSearchParams();
+  if (params?.scopeId) query.set("scope_id", params.scopeId);
+  if (params?.kind) query.set("kind", params.kind);
+  if (params?.tags) query.set("tags", params.tags);
+  if (params?.limit) query.set("limit", String(params.limit));
+
+  const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
+  if (!res.ok) throw new Error("Failed to list artifacts");
+  return res.json();
+}
+
 
 /* ---------------- Memory ---------------- */
 

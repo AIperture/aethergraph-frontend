@@ -33,6 +33,9 @@ import {
   getLLMStats,
   getMemoryStats,
   getArtifactStats,
+  pinArtifactApi,
+  listArtifacts,
+
 
 } from "../lib/api";
 
@@ -47,6 +50,8 @@ import {
   fakeMemoryHitsByScope,
 } from "./mock_data";
 
+const EMPTY_ARTIFACTS: ArtifactMeta[] = []; // for defaulting
+
 interface ShellState {
   presets: AppPreset[];
   runs: RunSummary[];
@@ -54,6 +59,11 @@ interface ShellState {
   graphDetails: Record<string, GraphDetail | undefined>;
 
   artifactsByRun: Record<string, ArtifactMeta[]>;
+  artifactsById: Record<string, ArtifactMeta>;
+  selectedArtifactIdByRun: Record<string, string | null>;
+  globalArtifacts: ArtifactMeta[];
+  selectedGlobalArtifactId: string | null;
+
   memoryEventsByScope: Record<string, MemoryEvent[]>;
   memorySummariesByScope: Record<string, MemorySummaryEntry[]>;
   memorySearchHitsByScope: Record<string, MemorySearchHit[]>;
@@ -94,6 +104,15 @@ interface ShellState {
   // Artifacts and Memory
   loadRunArtifacts: (runId: string) => Promise<void>;
   getRunArtifacts: (runId?: string) => ArtifactMeta[] | undefined;
+  selectRunArtifact: (runId: string, artifactId: string | null) => void;
+  pinArtifact: (artifactId: string, pinned: boolean) => Promise<void>;
+  loadGlobalArtifacts: (filters?: {
+    scopeId?: string;
+    kind?: string;
+    tags?: string;
+  }) => Promise<void>;
+  getGlobalArtifacts: () => ArtifactMeta[];
+  selectGlobalArtifact: (artifactId: string | null) => void;
 
   loadMemoryForScope: (scopeId: string) => Promise<void>;
   getMemoryEvents: (scopeId?: string) => MemoryEvent[] | undefined;
@@ -164,7 +183,13 @@ export const useShellStore = create<ShellState>((set, get) => {
     runs: USE_MOCKS ? fakeRuns.map(attachPresetInfoInitial) : [],
     runSnapshots: USE_MOCKS ? fakeSnapshots : {},
     graphDetails: {},
+
     artifactsByRun: USE_MOCKS ? fakeArtifactsByRun : {},
+    artifactsById: {},
+    selectedArtifactIdByRun: {},
+    globalArtifacts: [],
+    selectedGlobalArtifactId: null,
+
     memoryEventsByScope: USE_MOCKS ? fakeMemoryEventsByScope : {},
     memorySummariesByScope: USE_MOCKS ? fakeMemorySummariesByScope : {},
     memorySearchHitsByScope: USE_MOCKS ? fakeMemoryHitsByScope : {},
@@ -339,19 +364,29 @@ export const useShellStore = create<ShellState>((set, get) => {
     /* -------- Artifacts actions -------- */
 
     loadRunArtifacts: async (runId: string) => {
-      if (USE_MOCKS) return;
-      try {
-        const res = await listRunArtifacts(runId);
-        set((state) => ({
+      const data = await listRunArtifacts(runId);
+      set((state) => {
+        const artifactsById = { ...state.artifactsById };
+        for (const meta of data.artifacts) {
+          artifactsById[meta.artifact_id] = meta;
+        }
+        return {
           artifactsByRun: {
             ...state.artifactsByRun,
-            [runId]: res.artifacts,
+            [runId]: data.artifacts,
           },
-        }));
-      } catch (err) {
-        console.error("Failed to load artifacts for run", runId, err);
-      }
+          artifactsById,
+        };
+      });
     },
+
+    selectRunArtifact: (runId: string, artifactId: string | null) =>
+      set((state) => ({
+        selectedArtifactIdByRun: {
+          ...state.selectedArtifactIdByRun,
+          [runId]: artifactId,
+        },
+      })),
 
 
     getRunArtifacts: (runId?: string) => {
@@ -359,6 +394,56 @@ export const useShellStore = create<ShellState>((set, get) => {
       return get().artifactsByRun[runId];
     },
 
+    pinArtifact: async (artifactId: string, pinned: boolean) => {
+      // optimistic update
+      set((state) => {
+        const meta = state.artifactsById[artifactId];
+        if (!meta) return state;
+
+        const updated = { ...meta, pinned };
+        const artifactsById = { ...state.artifactsById, [artifactId]: updated };
+
+        const artifactsByRun: typeof state.artifactsByRun = {};
+        for (const [runId, list] of Object.entries(state.artifactsByRun)) {
+          artifactsByRun[runId] = list.map((a) =>
+            a.artifact_id === artifactId ? updated : a
+          );
+        }
+
+        const globalArtifacts = state.globalArtifacts.map((a) =>
+          a.artifact_id === artifactId ? updated : a
+        );
+
+        return { artifactsById, artifactsByRun, globalArtifacts };
+      });
+
+      try {
+        await pinArtifactApi(artifactId, pinned);
+      } catch (err) {
+        console.error("Failed to pin artifact", err);
+        // optional: reload or rollback
+      }
+    },
+
+
+    loadGlobalArtifacts: async (filters) => {
+      const data = await listArtifacts(filters);
+      set((state) => {
+        const byId = { ...state.artifactsById };
+        for (const meta of data.artifacts) {
+          byId[meta.artifact_id] = meta;
+        }
+        return {
+          artifactsById: byId,
+          globalArtifacts: data.artifacts,
+        };
+      });
+    },
+
+    getGlobalArtifacts: () => get().globalArtifacts,
+
+    selectGlobalArtifact: (artifactId: string | null) =>
+      set(() => ({ selectedGlobalArtifactId: artifactId })),
     /* -------- Memory actions -------- */
 
     loadMemoryForScope: async (scopeId: string) => {

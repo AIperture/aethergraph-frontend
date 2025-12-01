@@ -145,12 +145,20 @@ export interface ArtifactMeta {
   tags: string[];
   created_at: string; // ISO datetime
   uri: string | null;
+  pinned?: boolean;
+  preview_uri?: string | null;
+  run_id?: string | null;
+  graph_id?: string | null;
+
 }
 
 export interface ArtifactListResponse {
   artifacts: ArtifactMeta[];
   next_cursor: string | null;
 }
+
+
+
 
 /* --------- Memory --------- */
 

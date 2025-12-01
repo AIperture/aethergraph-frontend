@@ -10,6 +10,7 @@ import AppGalleryPage from "./routes/AppGalleryPage";
 import PresetRunnerPage from "./routes/PresetRunnerPage";
 import RunWorkspacePage from "./routes/RunWorkspacePage";
 import RunLaunchPage from "./routes/RunLaunchPage";
+import ArtifactsPage from "./routes/ArtifactsPage";
 
 const App: React.FC = () => {
   return (
@@ -26,7 +27,8 @@ const App: React.FC = () => {
 
         <Route path="/apps/:appId/run" element={<RunLaunchPage />} />
 
-
+        <Route path="/artifacts" element={<ArtifactsPage />} />
+    
 
         {/* ✅ Run workspace with tabs (overview / artifacts / memory / chat) */}
         <Route path="runs/:runId" element={<RunWorkspacePage />} />
