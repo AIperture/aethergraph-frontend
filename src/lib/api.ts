@@ -58,7 +58,6 @@ export async function startRun(
   graphId: string,
   body: RunCreateRequest
 ): Promise<RunCreateResponse> {
-  console.log("Starting run for graph:", graphId, "with body:", body);
   const res = await fetch(`${API_BASE}/graphs/${graphId}/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

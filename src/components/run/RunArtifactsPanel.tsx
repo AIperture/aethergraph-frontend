@@ -1,18 +1,17 @@
 import * as React from "react";
 import { useShellStore } from "../../store/shellStore";
 import type { ArtifactMeta } from "../../lib/types";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 import {
-  Star,
-  StarOff,
-  ExternalLink,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown,
+  FileText,
+  Image as ImageIcon,
+  FileJson,
+  FileCode,
+  File,
+  Search,
+  ArrowUpDown,
+  Star
 } from "lucide-react";
-import { getArtifactContentUrl, fetchArtifactTextContent } from "../../lib/api";
 import { ArtifactPreview } from "./ArtifactPreview";
 
 const EMPTY_ARTIFACTS: ArtifactMeta[] = [];
@@ -24,10 +23,29 @@ interface RunArtifactsPanelProps {
 type SortKey = "kind" | "mime_type" | "size" | "created_at";
 type SortDir = "asc" | "desc";
 
+// Helper to get icon by mime type
+const getFileIcon = (mime: string = "") => {
+  if (mime.startsWith("image/")) return <ImageIcon className="h-4 w-4 text-purple-500 shrink-0" />;
+  if (mime.includes("json")) return <FileJson className="h-4 w-4 text-orange-500 shrink-0" />;
+  if (mime.includes("text/")) return <FileText className="h-4 w-4 text-slate-500 shrink-0" />;
+  if (mime.includes("application/javascript") || mime.includes("python")) return <FileCode className="h-4 w-4 text-blue-500 shrink-0" />;
+  return <File className="h-4 w-4 text-muted-foreground shrink-0" />;
+};
+
+const formatSize = (bytes: number | null) => {
+    if (!bytes || bytes <= 0) return "—";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) => {
   const loadRunArtifacts = useShellStore((s) => s.loadRunArtifacts);
   const selectRunArtifact = useShellStore((s) => s.selectRunArtifact);
   const pinArtifact = useShellStore((s) => s.pinArtifact);
+
+  // Force re-render to handle in-place store updates
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   const artifacts = useShellStore(
     React.useCallback(
@@ -43,9 +61,9 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
     )
   );
 
-  // --- Sorting state ---
   const [sortKey, setSortKey] = React.useState<SortKey>("created_at");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
+  const [filter, setFilter] = React.useState("");
 
   React.useEffect(() => {
     if (!runId) return;
@@ -59,58 +77,17 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
     [artifacts, selectedArtifactId]
   );
 
-  // --- Derived: sorted artifacts ---
-  const sortedArtifacts = React.useMemo(() => {
-    if (!artifacts || artifacts.length === 0) return artifacts;
-
-    const copy = [...artifacts];
-
-    copy.sort((a, b) => {
-      const dir = sortDir === "asc" ? 1 : -1;
-
-      const get = (art: ArtifactMeta, key: SortKey) => {
-        switch (key) {
-          case "kind":
-            return (art.kind ?? "").toLowerCase();
-          case "mime_type":
-            return (art.mime_type ?? "").toLowerCase();
-          case "size":
-            return art.size ?? 0;
-          case "created_at":
-            return new Date(art.created_at).getTime();
-        }
-      };
-
-      const va = get(a, sortKey);
-      const vb = get(b, sortKey);
-
-      // numeric compare for size/created_at, string compare for others
-      if (typeof va === "number" && typeof vb === "number") {
-        if (va === vb) return 0;
-        return va < vb ? -1 * dir : 1 * dir;
-      }
-
-      const sa = String(va);
-      const sb = String(vb);
-      if (sa === sb) return 0;
-      return sa < sb ? -1 * dir : 1 * dir;
-    });
-
-    return copy;
-  }, [artifacts, sortKey, sortDir]);
-
-  const handleRowClick = (artifact: ArtifactMeta) => {
-    selectRunArtifact(runId, artifact.artifact_id);
-  };
-
+  // --- Handlers ---
   const handlePinClick = async (
     e: React.MouseEvent,
     artifact: ArtifactMeta,
     pinned: boolean
   ) => {
-    e.stopPropagation();
+    e.preventDefault();
+    e.stopPropagation(); 
     try {
       await pinArtifact(artifact.artifact_id, pinned);
+      forceUpdate(); // Triggers re-render to reflect new pin state immediately
     } catch (err) {
       console.error("Failed to pin artifact", err);
     }
@@ -118,168 +95,178 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
 
   const handleHeaderClick = (key: SortKey) => {
     if (sortKey === key) {
-      // same column → toggle direction
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
-      // new column → set key, start with ascending
       setSortKey(key);
-      setSortDir("asc");
+      setSortDir("desc"); 
     }
   };
 
+  // --- Filter & Sort ---
+  const processedArtifacts = React.useMemo(() => {
+    let result = [...artifacts];
 
-  const renderSortableHeader = (label: string, key: SortKey, extraClass = "") => {
-    const isActive = sortKey === key;
+    // Filter
+    if (filter) {
+        const lower = filter.toLowerCase();
+        result = result.filter(a => 
+            a.kind.toLowerCase().includes(lower) || 
+            (a.mime_type ?? "").toLowerCase().includes(lower)
+        );
+    }
 
-    const icon = !isActive ? (
-      <ChevronsUpDown className="h-3 w-3 opacity-60" />
-    ) : sortDir === "asc" ? (
-      <ChevronUp className="h-3 w-3" />
-    ) : (
-      <ChevronDown className="h-3 w-3" />
-    );
+    // Sort
+    result.sort((a, b) => {
+      // Always put Pinned items at the top
+      if (a.pinned !== b.pinned) {
+        return a.pinned ? -1 : 1;
+      }
 
-    return (
-      <th className={cn("px-3 py-2 font-medium", extraClass)}>
-        <button
-          type="button"
-          onClick={() => handleHeaderClick(key)}
-          className={cn(
-            "inline-flex items-center gap-1 text-[11px]",
-            "hover:text-foreground cursor-pointer",
-            isActive ? "text-foreground font-semibold" : "text-muted-foreground"
-          )}
-        >
-          <span>{label}</span>
-          {icon}
-        </button>
-      </th>
-    );
-  };
+      const dir = sortDir === "asc" ? 1 : -1;
+      const get = (art: ArtifactMeta, key: SortKey) => {
+        switch (key) {
+          case "kind": return (art.kind ?? "").toLowerCase();
+          case "mime_type": return (art.mime_type ?? "").toLowerCase();
+          case "size": return art.size ?? 0;
+          case "created_at": return new Date(art.created_at).getTime();
+        }
+      };
+
+      const va = get(a, sortKey);
+      const vb = get(b, sortKey);
+
+      if (typeof va === "number" && typeof vb === "number") {
+        return (va - vb) * dir;
+      }
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+
+    return result;
+  }, [artifacts, sortKey, sortDir, filter]); // artifacts dependency will pick up the re-render from forceUpdate
 
 
   if (!artifacts || artifacts.length === 0) {
     return (
-      <div className="p-3 text-xs text-muted-foreground lg:p-4">
-        No artifacts recorded yet for this run.
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-60">
+        <File className="h-10 w-10 mb-2 stroke-1" />
+        <p className="text-xs">No artifacts produced yet.</p>
       </div>
     );
   }
 
-  const formatSize = (bytes: number | null) => {
-    if (!bytes || bytes <= 0) return "—";
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
-
   return (
-    <div className="flex h-full flex-col gap-3 p-3 lg:p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">
-          Artifacts for <span className="font-mono text-xs">{runId}</span>
-        </h2>
-        <span className="text-xs text-muted-foreground">
-          {artifacts.length} item{artifacts.length === 1 ? "" : "s"}
-        </span>
+    <div className="flex h-full flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-border/60">
+      
+      {/* LEFT PANE: List */}
+      <div className="flex flex-col min-h-0 lg:w-[45%] bg-muted/5">
+        
+        {/* Toolbar */}
+        <div className="shrink-0 flex items-center justify-between border-b border-border/40 bg-muted/30 px-3 py-2">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                Files ({processedArtifacts.length})
+            </div>
+            <div className="relative">
+                <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                <input 
+                    className="h-6 w-32 rounded bg-background border border-border px-2 pl-6 text-[10px] focus:outline-none focus:ring-1 focus:ring-ring transition-all"
+                    placeholder="Filter..."
+                    value={filter}
+                    onChange={e => setFilter(e.target.value)}
+                />
+            </div>
+        </div>
+
+        {/* List Header: [Pin] [Name] [Date] [Size] */}
+        <div className="grid grid-cols-[28px_1fr_85px_65px] gap-2 px-3 py-2 border-b border-border/40 bg-background text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            <div className="text-center opacity-50"><Star className="h-3 w-3 inline-block" /></div>
+            <div className="cursor-pointer hover:text-foreground flex items-center gap-1" onClick={() => handleHeaderClick("kind")}>
+                Name {sortKey === 'kind' && <ArrowUpDown className="h-2 w-2" />}
+            </div>
+            <div className="cursor-pointer hover:text-foreground flex items-center justify-end gap-1" onClick={() => handleHeaderClick("created_at")}>
+                Date {sortKey === 'created_at' && <ArrowUpDown className="h-2 w-2" />}
+            </div>
+            <div className="cursor-pointer hover:text-foreground flex items-center justify-end gap-1" onClick={() => handleHeaderClick("size")}>
+                Size {sortKey === 'size' && <ArrowUpDown className="h-2 w-2" />}
+            </div>
+        </div>
+
+        {/* Scrollable List */}
+        <div className="flex-1 overflow-y-auto">
+            {processedArtifacts.map((a) => {
+                const isSelected = a.artifact_id === selectedArtifactId;
+                const isPinned = a.pinned ?? false;
+                
+                return (
+                    <div 
+                        key={a.artifact_id}
+                        onClick={() => selectRunArtifact(runId, a.artifact_id)}
+                        className={cn(
+                            "group grid grid-cols-[28px_1fr_85px_65px] gap-2 px-3 py-2.5 border-b border-border/40 cursor-pointer text-xs transition-colors",
+                            isSelected ? "bg-muted/80" : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        {/* Col 1: Pin Button */}
+                        <div className="flex items-start justify-center pt-0.5 relative z-10">
+                            <button
+                                onClick={(e) => handlePinClick(e, a, !isPinned)}
+                                className={cn(
+                                    "transition-all hover:scale-110 focus:outline-none p-0.5 rounded-sm",
+                                    isPinned ? "text-amber-400 opacity-100" : "text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted"
+                                )}
+                                title={isPinned ? "Unpin" : "Pin to top"}
+                            >
+                                <Star className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
+                            </button>
+                        </div>
+
+                        {/* Col 2: Icon + Name + Mime + Tags */}
+                        <div className="flex items-start gap-2.5 min-w-0">
+                            <div className="mt-0.5">{getFileIcon(a.mime_type || "")}</div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                                <span className={cn("font-medium truncate", isSelected ? "text-foreground" : "text-foreground/90")} title={a.kind}>
+                                    {a.kind}
+                                </span>
+                                
+                                <div className="flex items-center gap-2 text-[9px] mt-0.5 min-w-0">
+                                    <span className="opacity-60 truncate shrink-0 max-w-[80px]" title={a.mime_type || "unknown"}>
+                                        {a.mime_type || "—"}
+                                    </span>
+                                    {a.tags && a.tags.length > 0 && (
+                                        <div className="flex gap-1 min-w-0 overflow-hidden">
+                                            {a.tags.slice(0, 2).map((t) => (
+                                                <span 
+                                                    key={t} 
+                                                    className="inline-block truncate px-1 rounded-[2px] bg-foreground/5 text-foreground/70 border border-foreground/5 max-w-[60px]"
+                                                    title={t}
+                                                >
+                                                    #{t}
+                                                </span>
+                                            ))}
+                                            {a.tags.length > 2 && <span className="opacity-50">+{a.tags.length - 2}</span>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Col 3: Date */}
+                        <div className="flex items-center justify-end text-[10px] tabular-nums opacity-70 truncate">
+                            {new Date(a.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+
+                        {/* Col 4: Size */}
+                        <div className="flex items-center justify-end text-[10px] font-mono tabular-nums opacity-70 truncate">
+                            {formatSize(a.size)}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
       </div>
 
-      <div className="min-h-0 flex flex-1 flex-col overflow-hidden rounded-md border border-border/60 bg-background/40">
-        {/* Table */}
-        <div className="border-b">
-          <table className="w-full text-xs">
-            <thead className="border-b bg-muted/50">
-              <tr className="text-left text-muted-foreground">
-                <th className="w-7 px-3 py-2 font-medium" />
-                {renderSortableHeader("Kind", "kind")}
-                {renderSortableHeader("Mime", "mime_type")}
-                {renderSortableHeader("Size", "size")}
-                <th className="px-3 py-2 font-medium">Tags</th>
-                {renderSortableHeader("Created", "created_at")}
-                <th className="w-[90px] px-3 py-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedArtifacts.map((a) => {
-                const isSelected = a.artifact_id === selectedArtifactId;
-                return (
-                  <tr
-                    key={a.artifact_id}
-                    onClick={() => handleRowClick(a)}
-                    className={cn(
-                      "cursor-pointer border-b last:border-b-0 hover:bg-muted/40",
-                      isSelected && "bg-muted/60",
-                    )}
-                  >
-                    <td className="px-3 py-1.5">
-                      <button
-                        className="inline-flex items-center"
-                        onClick={(e) =>
-                          handlePinClick(e, a, !(a.pinned ?? false))
-                        }
-                        aria-label={a.pinned ? "Unpin" : "Pin"}
-                      >
-                        {a.pinned ? (
-                          <Star className="h-3 w-3 fill-current" />
-                        ) : (
-                          <StarOff className="h-3 w-3" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span className="font-mono text-[11px]">{a.kind}</span>
-                    </td>
-                    <td className="px-3 py-1.5 text-muted-foreground">
-                      {a.mime_type || "—"}
-                    </td>
-                    <td className="px-3 py-1.5 text-muted-foreground">
-                      {formatSize(a.size)}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <div className="flex flex-wrap gap-1">
-                        {a.tags?.map((t) => (
-                          <Badge
-                            key={t}
-                            variant="outline"
-                            className="px-1.5 py-0 text-[10px]"
-                          >
-                            {t}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-3 py-1.5 text-muted-foreground">
-                      {new Date(a.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 px-2 text-[11px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(
-                            getArtifactContentUrl(a.artifact_id),
-                            "_blank",
-                            "noopener,noreferrer",
-                          );
-                        }}
-                      >
-                        <ExternalLink className="mr-1 h-3 w-3" />
-                        Open
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Preview */}
-        <div className="min-h-0 flex-1">
-          <ArtifactPreview artifact={selectedArtifact} />
-        </div>
+      {/* RIGHT PANE: Preview */}
+      <div className="flex flex-col min-h-0 flex-1 bg-background">
+         <ArtifactPreview artifact={selectedArtifact} />
       </div>
     </div>
   );

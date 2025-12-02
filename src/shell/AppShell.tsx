@@ -1,4 +1,3 @@
-// src/shell/AppShell.tsx
 import * as React from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
@@ -10,17 +9,25 @@ import { ChannelHud } from "../components/shell/ChannelHud";
 
 const AppShell: React.FC = () => {
   return (
-    <div className="flex min-h-screen bg-background text-foreground text-[13px]">
+    // Use h-screen + overflow-hidden to force the app to fill the viewport exactly.
+    // This allows inner components (like Sidebar and PaneLayout) to handle their own scrolling.
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground text-sm antialiased">
+      
+      {/* Sidebar stays fixed on the left */}
       <Sidebar />
-      <div className="flex flex-col flex-1">
+      
+      <div className="flex flex-col flex-1 min-w-0 min-h-0">
+        {/* Header stays fixed at the top */}
         <Header />
-        <div className="flex-1">
-          {/* For now we put the routed page into the center pane */}
+        
+        {/* Content area fills remaining space */}
+        <div className="flex-1 min-h-0 relative">
+          {/* PaneLayout provides the structure for the page content */}
           <PaneLayout center={<Outlet />} />
         </div>
-        {/* Global toaster for notifications */}
+
+        {/* Overlays */}
         <Toaster />
-        {/* Runs polling bridge */}
         <RunsPollingBridge />
         <ChannelHud />
       </div>

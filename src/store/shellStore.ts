@@ -252,7 +252,9 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getRunsByAppId: (appId) => {
       if (!appId) return get().runs;
-      return get().runs.filter((r) => r.appId === appId);
+      get().runs.forEach((r) => console.log(r.appId));
+      const out = get().runs.filter((r) => r.appId === appId);
+      return out;
     },
 
     getRunById: (runId) => {
@@ -262,7 +264,6 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getRunSnapshot: (runId) => {
       if (!runId) return undefined;
-      // console.log("returned snapshot for runId", runId, get().runSnapshots[runId]);
       return get().runSnapshots[runId];
     },
 
@@ -326,6 +327,8 @@ export const useShellStore = create<ShellState>((set, get) => {
           started_at: now,
           finished_at: null,
           tags: [preset.id],
+          appId: preset.id,
+          appName: preset.name,
         };
         get().upsertRun(summary);
         return runId;
@@ -347,6 +350,8 @@ export const useShellStore = create<ShellState>((set, get) => {
         started_at: resp.started_at,
         finished_at: resp.finished_at,
         tags: body.tags,
+        appId: preset.id,
+        appName: preset.name,
       };
       get().upsertRun(summary);
       return resp.run_id;

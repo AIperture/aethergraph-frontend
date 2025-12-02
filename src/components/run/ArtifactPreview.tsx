@@ -1,8 +1,10 @@
+// src/components/run/ArtifactPreview.tsx
 import React from "react";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Download, FileText, Code, Maximize2 } from "lucide-react";
 import { getArtifactContentUrl, fetchArtifactTextContent } from "../../lib/api";
-import type { ArtifactMeta } from "@/lib/types";
-    
+import type { ArtifactMeta } from "../../lib/types"; // Adjusted import path to match your alias
+import { Button } from "../ui/button";
+import { cn } from "../../lib/utils";
 
 interface ArtifactPreviewProps {
   artifact: ArtifactMeta | null;
@@ -29,11 +31,10 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
     mime.startsWith("text/") ||
     mime === "application/json" ||
     mime.endsWith("+json") ||
-    ["txt", "log", "md", "markdown", "json", "csv"].includes(ext) ||
-    ["log", "text", "stdout", "stderr"].some((k) => kindLower.includes(k));
+    ["txt", "log", "md", "markdown", "json", "csv", "js", "ts", "py"].includes(ext) ||
+    ["log", "text", "stdout", "stderr", "code"].some((k) => kindLower.includes(k));
 
   React.useEffect(() => {
-    // reset on artifact change
     setContent(null);
     setError(null);
 
@@ -63,56 +64,91 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
 
   if (!artifact) {
     return (
-      <div className="p-3 text-xs text-muted-foreground">
-        Select an artifact to preview.
+      <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 gap-2">
+        <Maximize2 className="h-8 w-8 stroke-1" />
+        <p className="text-xs">Select a file to preview</p>
       </div>
     );
   }
 
+  const downloadUrl = getArtifactContentUrl(artifact.artifact_id);
+
   return (
-    <div className="p-3 h-full flex flex-col gap-2 overflow-hidden">
-      <div className="flex items-center justify-between text-xs">
-        <div>
-          <div className="font-mono text-[11px]">{artifact.kind}</div>
-          <div className="text-muted-foreground">
-            {mime || "application/octet-stream"}
-          </div>
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-2">
+        <div className="flex items-center gap-2 overflow-hidden">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Preview</span>
+            <div className="h-3 w-px bg-border/60 mx-1" />
+            <span className="font-mono text-xs text-foreground truncate max-w-[200px]" title={artifact.kind}>
+                {artifact.kind}
+            </span>
         </div>
-        <a
-          href={getArtifactContentUrl(artifact.artifact_id)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[11px] underline text-muted-foreground hover:text-foreground"
+        
+        <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[10px] gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() => window.open(downloadUrl, "_blank")}
         >
-          Download raw  <ExternalLink className="inline-block h-3 w-3 ml-1" />
-        </a>
+            <Download className="h-3 w-3" />
+            Download
+        </Button>
       </div>
 
-      <div className="border rounded-md flex-1 min-h-0 overflow-auto bg-muted/40">
+      {/* Content */}
+      <div className="flex-1 min-h-0 overflow-auto bg-muted/10 p-4">
         {isImage && (
-          <div className="w-full h-full flex items-center justify-center">
-            <img
-              src={getArtifactContentUrl(artifact.artifact_id)} // click the link triggers backend download
-              alt={artifact.kind}
-              className="max-h-full max-w-full object-contain"
-            />
+          <div className="flex items-center justify-center min-h-full">
+            <div className="relative rounded-lg border border-border shadow-sm overflow-hidden bg-[url('https://transparenttextures.com/patterns/subtle-grey.png')] bg-white/50">
+                <img
+                    src={downloadUrl}
+                    alt={artifact.kind}
+                    className="max-h-[60vh] max-w-full object-contain"
+                />
+            </div>
           </div>
         )}
 
         {isTextLike && (
-          <div className="p-3 font-mono text-[11px] whitespace-pre-wrap break-all">
+          <div className="relative min-h-full">
             {loading && (
-              <div className="text-muted-foreground">Loading…</div>
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[1px] z-10">
+                <span className="text-xs text-muted-foreground animate-pulse">Loading content...</span>
+              </div>
             )}
-            {error && <div className="text-red-500">Error: {error}</div>}
-            {!loading && !error && (content ?? "No content")}
+            
+            {error ? (
+               <div className="p-4 rounded border border-red-200 bg-red-50 text-red-600 text-xs dark:bg-red-900/10 dark:border-red-900/30">
+                 Error loading content: {error}
+               </div>
+            ) : (
+                <div className="rounded-md border border-border/60 bg-card shadow-sm overflow-hidden">
+                    <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 border-b border-border/40 text-[10px] text-muted-foreground font-mono">
+                         <Code className="h-3 w-3" />
+                         <span>Source Viewer</span>
+                    </div>
+                    <pre className="p-3 overflow-x-auto text-[11px] font-mono leading-relaxed text-foreground/90 tabular-nums">
+                        {content || <span className="opacity-50 italic">Empty file</span>}
+                    </pre>
+                </div>
+            )}
           </div>
         )}
 
         {!isImage && !isTextLike && (
-          <div className="p-3 text-xs text-muted-foreground">
-            No inline preview for this type. Use{" "}
-            <span className="font-mono">Download raw</span> to open it.
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+             <div className="p-3 rounded-full bg-muted/50">
+                <FileText className="h-8 w-8 opacity-50" />
+             </div>
+             <div className="text-center">
+                <p className="text-xs font-medium text-foreground">No preview available</p>
+                <p className="text-[10px] mt-1">Binary or unsupported file type.</p>
+             </div>
+             <Button variant="outline" size="sm" className="h-7 text-xs gap-2" onClick={() => window.open(downloadUrl, "_blank")}>
+                <ExternalLink className="h-3 w-3" />
+                Open External
+             </Button>
           </div>
         )}
       </div>
