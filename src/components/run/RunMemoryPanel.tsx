@@ -31,7 +31,7 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
   React.useEffect(() => {
     if (!scopeId) return;
     loadMemoryForScope(scopeId).catch((err) =>
-      console.error("Failed to load memory", err)
+      console.error("Failed to load memory", err),
     );
   }, [scopeId, loadMemoryForScope]);
 
@@ -46,42 +46,45 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header + scope info */}
+    <div className="flex h-full flex-col gap-3 p-3 lg:p-4">
+      {/* Header + search */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
+        <div className="space-y-1">
           <h2 className="text-sm font-semibold text-foreground">
-            Memory for scope <span className="font-mono">{scopeId}</span>
+            Memory for scope{" "}
+            <span className="font-mono text-xs">{scopeId}</span>
           </h2>
           <p className="text-xs text-muted-foreground">
-            Recent events (hotlog) and long-term summaries. This is where AG’s
-            memory services surface for a given run or session.
+            Hotlog events, long-term summaries, and semantic search for this
+            run&apos;s memory scope.
           </p>
         </div>
 
-        {/* Simple search bar */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
+        <form
+          onSubmit={handleSearch}
+          className="flex items-center gap-2 text-xs"
+        >
           <Input
-            className="h-8 w-40 md:w-56 text-xs"
-            placeholder="Search memory..."
+            className="h-8 w-40 text-xs md:w-56"
+            placeholder="Search memory…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <button
             type="submit"
-            className="text-xs px-2 py-1 rounded-md border border-border bg-muted hover:bg-muted/70"
+            className="rounded-md border border-border bg-muted px-2 py-1 text-[11px] hover:bg-muted/70"
             disabled={isSearching}
           >
-            {isSearching ? "Searching..." : "Search"}
+            {isSearching ? "Searching…" : "Search"}
           </button>
         </form>
       </div>
 
-      {/* Layout: left = events, right = summaries + search hits */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent events */}
-        <div className="border rounded-md p-3 space-y-2">
-          <div className="flex items-center justify-between mb-1">
+      {/* Body: 2 columns, scrollable panes */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1.5fr,1.2fr]">
+        {/* Left: recent events */}
+        <div className="flex min-h-0 flex-col rounded-md border border-border/60 bg-background/40 p-3">
+          <div className="mb-1 flex items-center justify-between">
             <span className="text-xs font-semibold text-foreground">
               Recent events
             </span>
@@ -89,9 +92,9 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
               {events.length} item{events.length === 1 ? "" : "s"}
             </span>
           </div>
-          <div className="space-y-2 max-h-72 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-2 overflow-auto text-xs">
             {events.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground">
                 No events recorded for this scope.
               </div>
             ) : (
@@ -101,14 +104,14 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                   className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-wrap items-center gap-1">
                       <Badge variant="outline" className="text-[10px]">
                         {evt.kind}
                       </Badge>
                       {evt.tags?.map((t) => (
                         <span
                           key={t}
-                          className="text-[10px] px-1 rounded-full bg-muted text-muted-foreground"
+                          className="rounded-full bg-muted px-1 text-[10px] text-muted-foreground"
                         >
                           {t}
                         </span>
@@ -129,11 +132,11 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
           </div>
         </div>
 
-        {/* Right column: summaries + search hits */}
-        <div className="space-y-3">
+        {/* Right: summaries + search hits */}
+        <div className="flex min-h-0 flex-col gap-3">
           {/* Summaries */}
-          <div className="border rounded-md p-3 space-y-2">
-            <div className="flex items-center justify-between mb-1">
+          <div className="flex min-h-0 flex-1 flex-col rounded-md border border-border/60 bg-background/40 p-3">
+            <div className="mb-1 flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">
                 Long-term summaries
               </span>
@@ -142,9 +145,9 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                 {summaries.length === 1 ? "" : "ies"}
               </span>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-2 overflow-auto text-xs">
               {summaries.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground">
                   No summaries yet. Distillers will populate this over time.
                 </div>
               ) : (
@@ -154,16 +157,14 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                     className="rounded-md border border-border/60 bg-muted/40 px-2 py-1.5"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-[10px]">
-                          {s.summary_tag}
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="text-[10px]">
+                        {s.summary_tag}
+                      </Badge>
                       <span className="text-[10px] text-muted-foreground">
                         {new Date(s.created_at).toLocaleString()}
                       </span>
                     </div>
-                    <div className="mt-1 text-xs text-foreground line-clamp-3">
+                    <div className="mt-1 line-clamp-3 text-xs text-foreground">
                       {s.text}
                     </div>
                   </div>
@@ -173,8 +174,8 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
           </div>
 
           {/* Search hits */}
-          <div className="border rounded-md p-3 space-y-2">
-            <div className="flex items-center justify-between mb-1">
+          <div className="flex min-h-0 flex-1 flex-col rounded-md border border-border/60 bg-background/40 p-3">
+            <div className="mb-1 flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">
                 Search hits
               </span>
@@ -182,9 +183,9 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                 {hits.length} result{hits.length === 1 ? "" : "s"}
               </span>
             </div>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-2 overflow-auto text-xs">
               {hits.length === 0 ? (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-[11px] text-muted-foreground">
                   No hits yet. Try a keyword like <code>metalens</code>.
                 </div>
               ) : (
@@ -195,6 +196,7 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                       ? (h.event.data["text"] as string) ??
                         JSON.stringify(h.event.data)
                       : h.summary?.text ?? "";
+
                   return (
                     <div
                       key={`${label}-${idx}`}
@@ -210,7 +212,7 @@ export const RunMemoryPanel: React.FC<RunMemoryPanelProps> = ({ scopeId }) => {
                           </span>
                         </div>
                       </div>
-                      <div className="mt-1 text-xs text-foreground line-clamp-3">
+                      <div className="mt-1 line-clamp-3 text-xs text-foreground">
                         {text}
                       </div>
                     </div>

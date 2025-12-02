@@ -46,14 +46,12 @@ export async function startRun(
   graphId: string,
   body: RunCreateRequest
 ): Promise<RunCreateResponse> {
-  console.log("API startRun called with body:", body);
   const res = await fetch(`${API_BASE}/graphs/${graphId}/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
 
   });
-  console.log("API startRun response:", res);
   if (!res.ok) throw new Error("Failed to start run");
   return res.json();
 }
@@ -147,7 +145,6 @@ export async function listMemoryEvents(
   }
 ): Promise<MemoryEventListResponse> {
   const search = new URLSearchParams();
-  console.log("url search params before setting scopeId:", search.toString());
   search.set("scope_id", scopeId);
   if (params?.kinds) search.set("kinds", params.kinds);
   if (params?.tags) search.set("tags", params.tags);

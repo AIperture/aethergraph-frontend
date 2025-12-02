@@ -4,10 +4,12 @@ import { Outlet } from "react-router-dom";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { PaneLayout } from "./PaneLayout";
+import { Toaster } from "../components/ui/sonner";
+
 
 const AppShell: React.FC = () => {
   return (
-    <div className="flex h-screen w-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-background text-foreground text-[13px]">
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Header />
@@ -15,6 +17,9 @@ const AppShell: React.FC = () => {
           {/* For now we put the routed page into the center pane */}
           <PaneLayout center={<Outlet />} />
         </div>
+        {/* Global toaster for notifications */}
+        <Toaster />
+
       </div>
     </div>
   );

@@ -68,6 +68,8 @@ interface ShellState {
   memorySummariesByScope: Record<string, MemorySummaryEntry[]>;
   memorySearchHitsByScope: Record<string, MemorySearchHit[]>;
 
+  runParamsById: Record<string, RunCreateRequest | undefined>;
+
   statsOverview: StatsOverview | null;
   graphStats: GraphStats | null;
   memoryStats: MemoryStats | null;
@@ -85,11 +87,15 @@ interface ShellState {
   getRunsByAppId: (appId: string | undefined) => RunSummary[];
   getRunById: (runId: string | undefined) => RunSummary | undefined;
   getRunSnapshot: (runId: string | undefined) => RunSnapshot | undefined;
+  getRunParamsForRun: (runId: string | undefined) => RunCreateRequest | undefined;
+
 
   // mutators
   setRuns: (runs: RunSummary[]) => void;
   upsertRun: (run: RunSummary) => void;
   setRunSnapshot: (runId: string, snapshot: RunSnapshot) => void;
+  setRunParamsForRun: (runId: string, params: RunCreateRequest) => void;
+
 
   // async actions
   loadRuns: () => Promise<void>;
@@ -193,6 +199,9 @@ export const useShellStore = create<ShellState>((set, get) => {
     memoryEventsByScope: USE_MOCKS ? fakeMemoryEventsByScope : {},
     memorySummariesByScope: USE_MOCKS ? fakeMemorySummariesByScope : {},
     memorySearchHitsByScope: USE_MOCKS ? fakeMemoryHitsByScope : {},
+
+    runParamsById: {},
+
 
     statsOverview: null,
     graphStats: null,
@@ -351,6 +360,24 @@ export const useShellStore = create<ShellState>((set, get) => {
     getGraphDetail: (graphId) =>
       graphId ? get().graphDetails[graphId] : undefined,
 
+
+
+    getRunParamsForRun: (runId) => {
+      if (!runId) return undefined;
+      return get().runParamsById[runId];
+    },
+
+
+
+    setRunParamsForRun: (runId, params) => {
+      set((state) => ({
+        runParamsById: {
+          ...state.runParamsById,
+          [runId]: params,
+        },
+      }));
+    },
+    
     loadGraphDetail: async (graphId: string) => {
       const existing = get().graphDetails[graphId];
       if (existing) return; // simple memoization

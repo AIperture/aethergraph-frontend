@@ -154,12 +154,12 @@ const ArtifactsPage: React.FC = () => {
         );
 
         return (
-            <th className={cn("px-3 py-2 font-medium", extraClass)}>
+            <th className={cn("px-3 py-2 font-medium text-left", extraClass)}>
                 <button
                     type="button"
                     onClick={() => handleHeaderClick(key)}
                     className={cn(
-                        "inline-flex items-center gap-1 text-[11px]",
+                        "inline-flex items-center gap-1 text-[11px] uppercase tracking-wide",
                         "hover:text-foreground cursor-pointer",
                         isActive ? "text-foreground font-semibold" : "text-muted-foreground"
                     )}
@@ -171,202 +171,205 @@ const ArtifactsPage: React.FC = () => {
         );
     };
 
+
     return (
-        <div className="h-full bg-background">
-            <div className="h-full max-w-6xl mx-auto px-4 py-4 space-y-4">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-lg font-semibold text-foreground">Artifacts</h1>
-                </div>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h1 className="text-lg font-semibold text-foreground">Artifacts</h1>
+            </div>
 
-                {/* Filters */}
-                <Card className="shadow-[var(--ag-shadow-soft)]">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm">Search</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="space-y-1">
-                                <label className="block text-[11px] text-muted-foreground">
-                                    Scope ID (e.g. run id)
-                                </label>
-                                <input
-                                    className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
-                                    value={scopeId}
-                                    onChange={(e) => setScopeId(e.target.value)}
-                                    placeholder="scope-id or run-id"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-[11px] text-muted-foreground">
-                                    Kind
-                                </label>
-                                <input
-                                    className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
-                                    value={kind}
-                                    onChange={(e) => setKind(e.target.value)}
-                                    placeholder="e.g. plot, log, report"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="block text-[11px] text-muted-foreground">
-                                    Tags (comma-separated)
-                                </label>
-                                <input
-                                    className="w-full rounded border border-input bg-background px-2 py-1 text-xs"
-                                    value={tags}
-                                    onChange={(e) => setTags(e.target.value)}
-                                    placeholder="tag1,tag2"
-                                />
-                            </div>
+            {/* Filters */}
+            <Card className="shadow-[var(--ag-shadow-soft)]">
+                <CardContent className="py-2 px-3 space-y-2 text-xs">
+                    {/* Top row: label + count + search button */}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Filters
+                            </span>
+                            <span className="text-[11px] text-muted-foreground">
+                                Showing {artifacts.length} item{artifacts.length === 1 ? "" : "s"}
+                            </span>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                            <div className="text-[11px] text-muted-foreground">
-                                Showing {artifacts.length} item
-                                {artifacts.length === 1 ? "" : "s"}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {error && (
-                                    <div className="text-[11px] text-red-500">
-                                        Error: {error}
-                                    </div>
-                                )}
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="text-xs"
-                                    onClick={handleSearch}
-                                    disabled={loading}
-                                >
-                                    {loading ? "Loading…" : "Search"}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Results + Preview */}
-                <Card className="shadow-[var(--ag-shadow-soft)] h-[480px]">
-                    <div className="h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
-                        {/* Table */}
-                        <div className="md:w-2/3 h-1/2 md:h-full overflow-hidden flex flex-col">
-                            <div className="border-b bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
-                                Global artifacts
-                            </div>
-                            <div className="flex-1 min-h-0 overflow-auto">
-                                <table className="w-full text-xs">
-                                    <thead className="bg-muted/50 border-b">
-                                        <tr className="text-left text-muted-foreground">
-                                            <th className="px-3 py-2 w-7"></th>
-                                            {renderSortableHeader("Kind", "kind")}
-                                            {renderSortableHeader("Scope", "scope_id")}
-                                            {renderSortableHeader("Mime", "mime_type")}
-                                            {renderSortableHeader("Size", "size")}
-                                            <th className="px-3 py-2">Tags</th>
-                                            {renderSortableHeader("Created", "created_at")}
-                                            <th className="px-3 py-2 w-[90px]">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedArtifacts.map((a) => {
-                                            const isSelected = a.artifact_id === selectedGlobalArtifactId;
-                                            return (
-                                                <tr
-                                                    key={a.artifact_id}
-                                                    onClick={() => handleRowClick(a)}
-                                                    className={cn(
-                                                        "border-b last:border-b-0 hover:bg-muted/40 cursor-pointer",
-                                                        isSelected && "bg-muted/60"
-                                                    )}
-                                                >
-                                                    <td className="px-3 py-1.5">
-                                                        <button
-                                                            className="inline-flex items-center"
-                                                            onClick={(e) =>
-                                                                handlePinClick(e, a, !(a.pinned ?? false))
-                                                            }
-                                                            aria-label={a.pinned ? "Unpin" : "Pin"}
-                                                        >
-                                                            {a.pinned ? (
-                                                                <Star className="h-3 w-3 fill-current" />
-                                                            ) : (
-                                                                <StarOff className="h-3 w-3" />
-                                                            )}
-                                                        </button>
-                                                    </td>
-                                                    <td className="px-3 py-1.5">
-                                                        <span className="font-mono text-[11px]">
-                                                            {a.kind}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-muted-foreground">
-                                                        {a.scope_id || "—"}
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-muted-foreground">
-                                                        {a.mime_type || "—"}
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-muted-foreground">
-                                                        {formatSize(a.size)}
-                                                    </td>
-                                                    <td className="px-3 py-1.5">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {a.tags?.map((t) => (
-                                                                <Badge
-                                                                    key={t}
-                                                                    variant="outline"
-                                                                    className="text-[10px] px-1.5 py-0"
-                                                                >
-                                                                    {t}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-1.5 text-muted-foreground">
-                                                        {new Date(a.created_at).toLocaleString()}
-                                                    </td>
-                                                    <td className="px-3 py-1.5">
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="h-6 px-2 text-[11px]"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                window.open(
-                                                                    getArtifactContentUrl(a.artifact_id),
-                                                                    "_blank",
-                                                                    "noopener,noreferrer"
-                                                                );
-                                                            }}
-                                                        >
-                                                            <ExternalLink className="h-3 w-3 mr-1" />
-                                                            Open
-                                                        </Button>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                        {artifacts.length === 0 && !loading && (
-                                            <tr>
-                                                <td
-                                                    colSpan={8}
-                                                    className="px-3 py-4 text-center text-xs text-muted-foreground"
-                                                >
-                                                    No artifacts found.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Preview */}
-                        <div className="md:w-1/3 h-1/2 md:h-full">
-                            <ArtifactPreview artifact={selectedArtifact} />
+                        <div className="flex items-center gap-2">
+                            {error && (
+                                <div className="text-[11px] text-red-500">
+                                    Error: {error}
+                                </div>
+                            )}
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-3 text-[11px]"
+                                onClick={handleSearch}
+                                disabled={loading}
+                            >
+                                {loading ? "Loading…" : "Search"}
+                            </Button>
                         </div>
                     </div>
-                </Card>
-            </div>
+
+                    {/* Filters row */}
+                    <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr] gap-2 md:items-end">
+                        <div className="space-y-1">
+                            <label className="block text-[11px] text-muted-foreground">
+                                Scope ID (e.g. run id)
+                            </label>
+                            <input
+                                className="w-full h-7 rounded border border-input bg-background px-2 text-[11px]"
+                                value={scopeId}
+                                onChange={(e) => setScopeId(e.target.value)}
+                                placeholder="scope-id or run-id"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="block text-[11px] text-muted-foreground">
+                                Kind
+                            </label>
+                            <input
+                                className="w-full h-7 rounded border border-input bg-background px-2 text-[11px]"
+                                value={kind}
+                                onChange={(e) => setKind(e.target.value)}
+                                placeholder="e.g. plot, log, report"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="block text-[11px] text-muted-foreground">
+                                Tags (comma-separated)
+                            </label>
+                            <input
+                                className="w-full h-7 rounded border border-input bg-background px-2 text-[11px]"
+                                value={tags}
+                                onChange={(e) => setTags(e.target.value)}
+                                placeholder="tag1,tag2"
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+
+            {/* Results + Preview */}
+            <Card className="shadow-[var(--ag-shadow-soft)] min-h-[420px] h-[480px]">
+                <div className="h-full flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
+                    {/* Table */}
+                    <div className="md:w-2/3 h-1/2 md:h-full overflow-hidden flex flex-col">
+                        <div className="border-b bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+                            Global artifacts
+                        </div>
+                        <div className="flex-1 min-h-0 overflow-auto">
+                            <table className="w-full text-xs">
+                                <thead className="bg-muted/50 border-b">
+                                    <tr className="text-left text-muted-foreground">
+                                        <th className="px-3 py-2 w-7"></th>
+                                        {renderSortableHeader("Kind", "kind")}
+                                        {renderSortableHeader("Scope", "scope_id")}
+                                        {renderSortableHeader("Mime", "mime_type")}
+                                        {renderSortableHeader("Size", "size")}
+                                        <th className="px-3 py-2">Tags</th>
+                                        {renderSortableHeader("Created", "created_at")}
+                                        <th className="px-3 py-2 w-[90px]">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sortedArtifacts.map((a) => {
+                                        const isSelected = a.artifact_id === selectedGlobalArtifactId;
+                                        return (
+                                            <tr
+                                                key={a.artifact_id}
+                                                onClick={() => handleRowClick(a)}
+                                                className={cn(
+                                                    "border-b last:border-b-0 hover:bg-muted/40 cursor-pointer",
+                                                    isSelected && "bg-muted/60"
+                                                )}
+                                            >
+                                                <td className="px-3 py-1.5">
+                                                    <button
+                                                        className="inline-flex items-center"
+                                                        onClick={(e) =>
+                                                            handlePinClick(e, a, !(a.pinned ?? false))
+                                                        }
+                                                        aria-label={a.pinned ? "Unpin" : "Pin"}
+                                                    >
+                                                        {a.pinned ? (
+                                                            <Star className="h-3 w-3 fill-current" />
+                                                        ) : (
+                                                            <StarOff className="h-3 w-3" />
+                                                        )}
+                                                    </button>
+                                                </td>
+                                                <td className="px-3 py-1.5">
+                                                    <span className="font-mono text-[11px]">
+                                                        {a.kind}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">
+                                                    {a.scope_id || "—"}
+                                                </td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">
+                                                    {a.mime_type || "—"}
+                                                </td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">
+                                                    {formatSize(a.size)}
+                                                </td>
+                                                <td className="px-3 py-1.5">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {a.tags?.map((t) => (
+                                                            <Badge
+                                                                key={t}
+                                                                variant="outline"
+                                                                className="text-[10px] px-1.5 py-0"
+                                                            >
+                                                                {t}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">
+                                                    {new Date(a.created_at).toLocaleString()}
+                                                </td>
+                                                <td className="px-3 py-1.5">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-6 px-2 text-[11px]"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            window.open(
+                                                                getArtifactContentUrl(a.artifact_id),
+                                                                "_blank",
+                                                                "noopener,noreferrer"
+                                                            );
+                                                        }}
+                                                    >
+                                                        <ExternalLink className="h-3 w-3 mr-1" />
+                                                        Open
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                    {artifacts.length === 0 && !loading && (
+                                        <tr>
+                                            <td
+                                                colSpan={8}
+                                                className="px-3 py-4 text-center text-xs text-muted-foreground"
+                                            >
+                                                No artifacts found.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="md:w-1/3 h-1/2 md:h-full">
+                        <ArtifactPreview artifact={selectedArtifact} />
+                    </div>
+                </div>
+            </Card>
         </div>
     );
 };

@@ -27,13 +27,13 @@ export const Sidebar: React.FC = () => {
     <aside className="hidden lg:flex lg:flex-col w-64 border-r border-border bg-sidebar text-sidebar-foreground">
       {/* Header */}
       <div className="px-4 py-3 border-b border-sidebar-border">
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        <div className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Apps & Presets
         </div>
       </div>
 
       {/* Top links */}
-      <div className="px-3 py-2 space-y-1 text-xs">
+      <div className="px-3 py-2 space-y-1 text-sm">
         <Link
           to="/"
           className={cn(
@@ -63,7 +63,7 @@ export const Sidebar: React.FC = () => {
           Artifacts
         </Link>
 
-        
+
       </div>
 
       {/* Content */}
@@ -113,7 +113,7 @@ export const Sidebar: React.FC = () => {
           <div className="px-2 mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             Channels
           </div>
-          <ul className="space-y-1 text-xs text-muted-foreground">
+          <ul className="space-y-1 text-[12px] text-muted-foreground">
             {runs
               // only show runs that actually have channel messages
               .filter((r) => messagesByRunId[r.run_id]?.length)

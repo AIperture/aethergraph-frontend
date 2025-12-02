@@ -8,6 +8,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Separator } from "../components/ui/separator";
 import type { RunCreateRequest } from "../lib/types";
 import { startRun } from "../lib/api";
+import { Toaster, toast } from "sonner";
 
 const RunLaunchPage: React.FC = () => {
   const { appId } = useParams<{ appId: string }>();
@@ -16,17 +17,18 @@ const RunLaunchPage: React.FC = () => {
   const getPresetById = useShellStore((s) => s.getPresetById);
   const loadGraphDetail = useShellStore((s) => s.loadGraphDetail);
   const selectGraphDetail = useShellStore((s) => s.getGraphDetail);
+  const setRunParamsForRun = useShellStore((s) => s.setRunParamsForRun);
 
   const preset = getPresetById(appId);
   const graphId = preset?.graphId;
   const graphDetail = selectGraphDetail(graphId);
 
-  const [inputsText, setInputsText] = React.useState<string>('{\n  "vals": [1, 2, 3, 4, 5]\n}');
-  const [runConfigText, setRunConfigText] = React.useState<string>('{}');
+  // Per-input simple fields, instead of raw JSON
+  const [inputValues, setInputValues] = React.useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // load graph detail on mount
+  // Load graph detail on mount
   React.useEffect(() => {
     if (graphId) {
       loadGraphDetail(graphId).catch((err) =>
@@ -35,10 +37,37 @@ const RunLaunchPage: React.FC = () => {
     }
   }, [graphId, loadGraphDetail]);
 
+  // Initialize per-input defaults when graphDetail arrives
+  React.useEffect(() => {
+    if (!graphDetail?.inputs) return;
+
+    setInputValues((prev) => {
+      const next = { ...prev };
+      for (const key of graphDetail.inputs) {
+        if (!(key in next)) {
+          next[key] = "0"; // default numeric-ish value
+        }
+      }
+      return next;
+    });
+  }, [graphDetail]);
+
   if (!preset || !graphId) {
     return (
-      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-        Unknown preset.
+      <div className="space-y-2 text-xs text-muted-foreground">
+        <h1 className="text-lg font-semibold text-foreground tracking-tight">
+          Unknown preset
+        </h1>
+        <p>No preset or graph found for this route.</p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          type="button"
+          onClick={() => navigate("/apps")}
+        >
+          Back to App Gallery
+        </Button>
       </div>
     );
   }
@@ -46,20 +75,32 @@ const RunLaunchPage: React.FC = () => {
   const handleStart = async () => {
     setError(null);
     setIsSubmitting(true);
-    try {
-      let inputs: Record<string, any>;
-      let runConfig: Record<string, any>;
 
-      try {
-        inputs = JSON.parse(inputsText || "{}");
-      } catch {
-        throw new Error("Inputs must be valid JSON");
+    try {
+      // Build inputs object from simple fields
+      const inputs: Record<string, any> = {};
+      const keys = graphDetail?.inputs ?? [];
+
+      for (const key of keys) {
+        const raw = (inputValues[key] ?? "").trim();
+        if (!raw) continue; // skip empty fields
+
+        // Try to parse as JSON, fall back to string
+        let parsed: any = raw;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          // If JSON.parse fails and raw looks like a number, coerce to number
+          const n = Number(raw);
+          parsed = Number.isNaN(n) ? raw : n;
+        }
+        inputs[key] = parsed;
       }
-      try {
-        runConfig = JSON.parse(runConfigText || "{}");
-      } catch {
-        throw new Error("Run config must be valid JSON");
-      }
+
+      // Fixed run config for demo
+      const runConfig: Record<string, any> = {
+        max_concurrency: 4,
+      };
 
       const body: RunCreateRequest = {
         run_id: null,
@@ -68,223 +109,215 @@ const RunLaunchPage: React.FC = () => {
         tags: [preset.id],
       };
 
+
       const resp = await startRun(graphId, body);
+
+      setRunParamsForRun(resp.run_id, {
+        run_id: resp.run_id,       // optional, but fine to keep
+        inputs,
+        run_config: runConfig,
+        tags: [preset.id],
+      });
+
+      toast.success("Run started", {
+        description: `Run ${resp.run_id} has been created.`,
+      });
+
       navigate(`/runs/${resp.run_id}`);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to start run");
+      const msg = err?.message || "Failed to start run";
+      setError(msg);
+
+      toast.error("Failed to start run", {
+        description: msg,
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-
-  const handleStart_ = async () => {
-    setError(null);
-
-    // Don’t block the UI on the request finishing
-    setIsSubmitting(true);
-
-    try {
-      let inputs: Record<string, any>;
-      let runConfig: Record<string, any>;
-
-      try {
-        inputs = JSON.parse(inputsText || "{}");
-      } catch {
-        throw new Error("Inputs must be valid JSON");
-      }
-      try {
-        runConfig = JSON.parse(runConfigText || "{}");
-      } catch {
-        throw new Error("Run config must be valid JSON");
-      }
-
-      // 1) Generate a run_id on the client
-      const runId =
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `run-${Math.random().toString(16).slice(2)}`;
-
-      const body: RunCreateRequest = {
-        run_id: runId,     // <<–– key change
-        inputs,
-        run_config: runConfig,
-        tags: [preset.id],
-      };
-
-      // 2) Optimistically navigate *immediately* so the user sees the workspace
-      navigate(`/runs/${runId}`);
-
-      // 3) Fire the request in the background
-      //    (we still await here so errors go to console / future toast,
-      //     but navigation already happened)
-      startRun(graphId, body)
-        .then((resp) => {
-          // optional: you can reconcile run_id if the backend overrides it
-          // console.log("run started", resp.run_id);
-        })
-        .catch((err) => {
-          console.error("Failed to start run", err);
-          // later: show a toast on the workspace page
-        })
-        .finally(() => {
-          setIsSubmitting(false);
-        });
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to start run");
-      setIsSubmitting(false);
-    }
+  const handleInputChange = (key: string, value: string) => {
+    setInputValues((prev) => ({ ...prev, [key]: value }));
   };
 
   return (
-    <div className="h-full bg-background">
-      <div className="h-full max-w-6xl mx-auto px-4 py-4 space-y-4">
-        {/* Header */}
-        <div className="space-y-1">
-          <h1 className="text-lg font-semibold text-foreground">
-            Launch: {preset.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Configure inputs and start a new run for graph{" "}
-            <span className="font-mono">{graphId}</span>.
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-lg font-semibold text-foreground tracking-tight">
+          Launch: {preset.name}
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Configure inputs and start a new run for graph{" "}
+          <span className="font-mono">{graphId}</span>.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr,1.5fr] gap-4">
-          {/* Config card */}
-          <Card className="shadow-[var(--ag-shadow-soft)]">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-card-foreground">
-                Inputs & run config
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Inputs (JSON)
-                  </span>
-                  {graphDetail && graphDetail.inputs.length > 0 && (
-                    <span className="text-[11px] text-muted-foreground">
-                      Expected keys:{" "}
-                      {graphDetail.inputs.map((k) => (
-                        <code key={k} className="px-1">
-                          {k}
-                        </code>
-                      ))}
-                    </span>
-                  )}
-                </div>
-                <Textarea
-                  className="font-mono text-xs min-h-[120px]"
-                  value={inputsText}
-                  onChange={(e) => setInputsText(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Run config (JSON)
-                  </span>
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr,1.5fr] gap-4">
+        {/* Left: config & inputs */}
+        <Card className="shadow-[var(--ag-shadow-soft)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Inputs &amp; run config
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-xs">
+            {/* Graph inputs as fields */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Inputs
+                </span>
+                {graphDetail && graphDetail.inputs.length > 0 && (
                   <span className="text-[11px] text-muted-foreground">
-                    Optional
+                    {graphDetail.inputs.length} parameter
+                    {graphDetail.inputs.length === 1 ? "" : "s"}
                   </span>
-                </div>
-                <Textarea
-                  className="font-mono text-xs min-h-[80px]"
-                  value={runConfigText}
-                  onChange={(e) => setRunConfigText(e.target.value)}
-                />
+                )}
               </div>
-
-              {error && (
-                <div className="text-xs text-red-600 dark:text-red-400">
-                  {error}
+              {graphDetail?.inputs?.length ? (
+                <div className="space-y-2">
+                  {graphDetail.inputs.map((key) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] text-muted-foreground">
+                          {key}
+                        </label>
+                        <span className="text-[10px] text-muted-foreground/80">
+                          JSON or scalar
+                        </span>
+                      </div>
+                      <input
+                        className="w-full h-7 rounded border border-input bg-background px-2 font-mono text-[11px]"
+                        value={inputValues[key] ?? ""}
+                        onChange={(e) => handleInputChange(key, e.target.value)}
+                        placeholder='e.g. 1.0, "foo", [1,2,3]'
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted-foreground">
+                  This graph has no declared inputs. You can still start the run.
                 </div>
               )}
+            </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={() => navigate(-1)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  type="button"
-                  onClick={handleStart}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Starting..." : "Start run"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <Separator />
 
-          {/* Graph meta card */}
-          <Card className="shadow-[var(--ag-shadow-soft)]">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-card-foreground">
-                Graph details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs text-muted-foreground">
-              <div>
-                <div className="font-semibold text-foreground">
-                  {graphDetail?.name ?? graphId}
-                </div>
-                {graphDetail?.description && (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {graphDetail.description}
-                  </p>
-                )}
-              </div>
-              <Separator />
-              <div className="space-y-1">
-                <div className="font-medium text-[11px] uppercase tracking-wide">
-                  Inputs
-                </div>
-                {graphDetail?.inputs?.length ? (
-                  <ul className="list-disc list-inside">
-                    {graphDetail.inputs.map((inp) => (
-                      <li key={inp}>
-                        <code>{inp}</code>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground">
-                    No explicit inputs defined.
-                  </div>
-                )}
+            {/* Fixed run_config preview */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Run config
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Fixed for demo
+                </span>
               </div>
               <div className="space-y-1">
-                <div className="font-medium text-[11px] uppercase tracking-wide">
-                  Outputs
-                </div>
-                {graphDetail?.outputs?.length ? (
-                  <ul className="list-disc list-inside">
-                    {graphDetail.outputs.map((out) => (
-                      <li key={out}>
-                        <code>{out}</code>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-[11px] text-muted-foreground">
-                    No explicit outputs defined.
-                  </div>
-                )}
+                <label className="block text-[11px] text-muted-foreground">
+                  max_concurrency
+                </label>
+                <input
+                  className="w-full h-7 rounded border border-input bg-muted px-2 font-mono text-[11px] text-muted-foreground"
+                  value="4"
+                  readOnly
+                  disabled
+                />
+                <p className="text-[10px] text-muted-foreground/80">
+                  Hard-coded for this demo. Future versions can make this configurable.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+
+            {error && (
+              <div className="text-[11px] text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                className="text-xs"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                type="button"
+                className="text-xs"
+                onClick={handleStart}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Starting..." : "Start run"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: graph meta */}
+        <Card className="shadow-[var(--ag-shadow-soft)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Graph details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs text-muted-foreground">
+            <div>
+              <div className="font-semibold text-foreground">
+                {graphDetail?.name ?? graphId}
+              </div>
+              {graphDetail?.description && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {graphDetail.description}
+                </p>
+              )}
+            </div>
+            <Separator />
+            <div className="space-y-1">
+              <div className="font-medium text-[11px] uppercase tracking-wide">
+                Inputs
+              </div>
+              {graphDetail?.inputs?.length ? (
+                <ul className="list-disc list-inside">
+                  {graphDetail.inputs.map((inp) => (
+                    <li key={inp}>
+                      <code>{inp}</code>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-[11px] text-muted-foreground">
+                  No explicit inputs defined.
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <div className="font-medium text-[11px] uppercase tracking-wide">
+                Outputs
+              </div>
+              {graphDetail?.outputs?.length ? (
+                <ul className="list-disc list-inside">
+                  {graphDetail.outputs.map((out) => (
+                    <li key={out}>
+                      <code>{out}</code>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-[11px] text-muted-foreground">
+                  No explicit outputs defined.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

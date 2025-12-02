@@ -160,7 +160,7 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
 
   if (!artifacts || artifacts.length === 0) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
+      <div className="p-3 text-xs text-muted-foreground lg:p-4">
         No artifacts recorded yet for this run.
       </div>
     );
@@ -174,29 +174,29 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
   };
 
   return (
-    <div className="p-4 space-y-3 h-full flex flex-col">
+    <div className="flex h-full flex-col gap-3 p-3 lg:p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">
-          Artifacts for <span className="font-mono">{runId}</span>
+          Artifacts for <span className="font-mono text-xs">{runId}</span>
         </h2>
         <span className="text-xs text-muted-foreground">
           {artifacts.length} item{artifacts.length === 1 ? "" : "s"}
         </span>
       </div>
 
-      <div className="border rounded-md overflow-hidden flex-1 flex flex-col min-h-0">
+      <div className="min-h-0 flex flex-1 flex-col overflow-hidden rounded-md border border-border/60 bg-background/40">
         {/* Table */}
         <div className="border-b">
           <table className="w-full text-xs">
-            <thead className="bg-muted/50 border-b">
+            <thead className="border-b bg-muted/50">
               <tr className="text-left text-muted-foreground">
-                <th className="px-3 py-2 font-medium w-7"></th>
+                <th className="w-7 px-3 py-2 font-medium" />
                 {renderSortableHeader("Kind", "kind")}
                 {renderSortableHeader("Mime", "mime_type")}
                 {renderSortableHeader("Size", "size")}
                 <th className="px-3 py-2 font-medium">Tags</th>
                 {renderSortableHeader("Created", "created_at")}
-                <th className="px-3 py-2 font-medium w-[90px]">Actions</th>
+                <th className="w-[90px] px-3 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -207,8 +207,8 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
                     key={a.artifact_id}
                     onClick={() => handleRowClick(a)}
                     className={cn(
-                      "border-b last:border-b-0 hover:bg-muted/40 cursor-pointer",
-                      isSelected && "bg-muted/60"
+                      "cursor-pointer border-b last:border-b-0 hover:bg-muted/40",
+                      isSelected && "bg-muted/60",
                     )}
                   >
                     <td className="px-3 py-1.5">
@@ -241,7 +241,7 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
                           <Badge
                             key={t}
                             variant="outline"
-                            className="text-[10px] px-1.5 py-0"
+                            className="px-1.5 py-0 text-[10px]"
                           >
                             {t}
                           </Badge>
@@ -261,11 +261,11 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
                           window.open(
                             getArtifactContentUrl(a.artifact_id),
                             "_blank",
-                            "noopener,noreferrer"
+                            "noopener,noreferrer",
                           );
                         }}
                       >
-                        <ExternalLink className="h-3 w-3 mr-1" />
+                        <ExternalLink className="mr-1 h-3 w-3" />
                         Open
                       </Button>
                     </td>
@@ -277,7 +277,7 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
         </div>
 
         {/* Preview */}
-        <div className="flex-1 min-h-0">
+        <div className="min-h-0 flex-1">
           <ArtifactPreview artifact={selectedArtifact} />
         </div>
       </div>

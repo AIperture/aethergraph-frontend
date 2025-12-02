@@ -13,20 +13,21 @@ interface RunChannelPanelProps {
 const EMPTY_EVENTS: RunChannelEvent[] = [];
 
 export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
+  // --- hooks (top level only) ---
   const messages = useChannelStore(
     React.useCallback(
       (s) => s.messagesByRunId[runId] || EMPTY_EVENTS,
-      [runId],
-    ),
+      [runId]
+    )
   );
-
   const sendMessage = useChannelStore((s) => s.sendMessage);
   const markRead = useChannelStore((s) => s.markRead);
+
   const pollMs = 1500;
-
   const [input, setInput] = React.useState("");
+  const viewportRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Polling loop
+  // --- polling effect ---
   React.useEffect(() => {
     if (!runId) return;
 
@@ -42,7 +43,7 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
       }
     };
 
-    void tick();
+    void tick(); // initial fetch
     const id = window.setInterval(tick, pollMs);
 
     return () => {
@@ -51,11 +52,18 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
     };
   }, [runId, pollMs]);
 
-  // Mark read when viewing this panel
+  // --- mark messages as read whenever we're viewing this panel & messages change ---
   React.useEffect(() => {
     if (!runId) return;
     markRead(runId);
-  }, [runId, markRead]);
+  }, [runId, messages.length, markRead]);
+
+  // --- optional: auto-scroll to bottom on new messages ---
+  React.useEffect(() => {
+    if (!viewportRef.current) return;
+    const el = viewportRef.current;
+    el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,36 +86,37 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
     const label = isUser
       ? "user"
       : isSystem
-        ? "system"
-        : isAgent
-          ? "agent"
-          : "event";
+      ? "system"
+      : isAgent
+      ? "agent"
+      : "event";
 
     const wrapperClass = cn(
       "mb-2 flex",
-      isUser ? "justify-end" : "justify-start",
+      isUser ? "justify-end" : "justify-start"
     );
 
     const bubbleClass = cn(
-      "max-w-[80%] rounded-md px-2 py-1 text-xs shadow-sm",
-      isUser ? "bg-brand text-white" : "bg-muted text-foreground",
+      "rounded-md px-2 py-1 max-w-[80%] shadow-sm",
+      isUser ? "bg-brand text-white" : "bg-muted text-foreground"
     );
 
     const headerClass = cn(
-      "mb-0.5 text-[10px] opacity-80",
-      isUser ? "text-white/80 text-right" : "text-muted-foreground",
+      "text-[10px] mb-0.5 opacity-80",
+      isUser ? "text-white/80 text-right" : "text-muted-foreground"
     );
 
     const bodyClass = cn(
-      "whitespace-pre-wrap",
-      isUser ? "text-white" : "text-foreground",
+      "text-xs whitespace-pre-wrap",
+      isUser ? "text-white" : "text-foreground"
     );
 
     return (
       <div key={ev.id} className={wrapperClass}>
         <div className={bubbleClass}>
           <div className={headerClass}>
-            <span className="font-semibold">{label}</span> ·{" "}
+            <span className="font-semibold">{label}</span>{" "}
+            <span>·</span>{" "}
             <span>
               {Number.isFinite(ev.ts)
                 ? new Date(ev.ts * 1000).toLocaleTimeString()
@@ -158,41 +167,40 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
   };
 
   return (
-    <div className="flex h-[360px] flex-col lg:h-[420px]">
-      <div className="min-h-0 flex flex-1 flex-col overflow-hidden rounded-md border border-border/60 bg-background/40">
-        {/* Small header bar inside the pane */}
-        <div className="flex items-center justify-between border-b border-border/60 px-3 py-2 text-[11px] text-muted-foreground">
-          <div className="font-medium uppercase tracking-wide">
-            Run channel
-          </div>
-          <div className="font-mono text-[10px]">
-            # ui-run-{runId.slice(0, 6)}
-          </div>
+    <div className="flex flex-col h-[420px] min-h-0">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Run Channel
         </div>
+        <div className="text-[11px] text-muted-foreground">
+          # ui-run-{runId.slice(0, 6)}
+        </div>
+      </div>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1 h-full px-3 py-2">
-          {messages.length === 0 ? (
-            <div className="text-[11px] text-muted-foreground">
-              No channel events yet. When this run asks for input or sends
-              messages, they will appear here.
-            </div>
-          ) : (
-            <div className="space-y-2">{messages.map(renderEvent)}</div>
-          )}
+      <div className="border rounded-md flex-1 flex flex-col overflow-hidden min-h-0">
+        <ScrollArea className="flex-1 h-full p-3">
+          <div ref={viewportRef}>
+            {messages.length === 0 ? (
+              <div className="text-[11px] text-muted-foreground">
+                No channel events yet. When this run asks for input or sends
+                messages, they will appear here.
+              </div>
+            ) : (
+              <div className="space-y-2">{messages.map(renderEvent)}</div>
+            )}
+          </div>
         </ScrollArea>
 
-        {/* Input */}
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-2 border-t border-border/60 bg-muted/40 px-2 py-1.5"
+          className="border-t bg-muted/40 flex items-center gap-2 px-2 py-1.5"
         >
           <input
             className={cn(
-              "flex-1 rounded border bg-transparent px-2 py-1 text-xs",
-              "focus:outline-none focus-visible:ring-1 focus-visible:ring-brand",
+              "flex-1 text-xs bg-transparent px-2 py-1 rounded border",
+              "focus:outline-none focus-visible:ring-1 focus-visible:ring-brand"
             )}
-            placeholder="Send a message to this run…"
+            placeholder="Send a message to this run..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
