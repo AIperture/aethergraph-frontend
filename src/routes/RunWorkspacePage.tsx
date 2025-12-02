@@ -41,7 +41,6 @@ const RunWorkspacePage: React.FC = () => {
     const snapshot = useShellStore((s) => s.getRunSnapshot(runId));
     const getRunParamsForRun = useShellStore((s) => s.getRunParamsForRun);
 
-    // const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
     const [isActing, setIsActing] = React.useState(false);
 
     const setActiveRunId = useChannelStore((s) => s.setActiveRunId);
@@ -49,26 +48,12 @@ const RunWorkspacePage: React.FC = () => {
     const unreadForRun = useChannelStore((s) =>
         runId ? s.getUnreadForRun(runId) : 0
     );
-
-    // Sync activeTab with URL param
-    // React.useEffect(() => {
-    //     const param = searchParams.get("tab") as TabKey | null;
-
-    //     if (!param) {
-    //         // default to nodes if no tab in URL
-    //         if (activeTab !== "nodes") {
-    //             setActiveTab("nodes");
-    //         }
-    //         return;
-    //     }
-
-    //     if (param !== activeTab && validTabs.includes(param)) {
-    //         setActiveTab(param);
-    //     }
-    // }, [searchParams, activeTab]);
+    // Track previous unread count so we can detect increases
+    const prevUnreadRef = React.useRef(unreadForRun);
+    
     const urlTab = (searchParams.get("tab") as TabKey | null) || "nodes";
     const activeTab: TabKey = validTabs.includes(urlTab) ? urlTab : "nodes";
-
+    const [activeTabState, setActiveTab] = React.useState<TabKey>(activeTab);
 
     // Poll for new channel events
     React.useEffect(() => {
@@ -137,12 +122,39 @@ const RunWorkspacePage: React.FC = () => {
     }
 
     const handleTabClick = (tab: TabKey) => {
-        setSearchParams(prev => {
+        setActiveTab(tab);
+        setSearchParams((prev) => {
             const next = new URLSearchParams(prev);
             next.set("tab", tab);
             return next;
         });
     };
+
+    React.useEffect(() => {
+  if (!runId) return;
+
+  const prev = prevUnreadRef.current;
+
+  // Only fire when unread count increases and we're NOT already viewing Channel
+  // This only works in the Workspace page since we track activeTab here
+  // TODO: Later we can improve this with a global "current viewed run/channel" state
+  if (unreadForRun > prev && activeTab !== "channel") {
+    toast("New channel message", {
+      description: `Run ${runId.slice(0, 8)} has ${
+        unreadForRun
+      } unread message${unreadForRun > 1 ? "s" : ""}.`,
+      action: {
+        label: "Open channel",
+        onClick: () => handleTabClick("channel"),
+      },
+      // optional: make it feel a bit more "urgent"
+      duration: 8000,
+      className: "cursor-pointer",
+    });
+  }
+
+  prevUnreadRef.current = unreadForRun;
+}, [unreadForRun, activeTab, runId]);
 
 
     const status: RunStatus =
