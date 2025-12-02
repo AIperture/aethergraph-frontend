@@ -1,5 +1,8 @@
 // src/store/shellStore.ts
 import { create } from "zustand";
+import { getClientId } from "@/utils/clientId"; // temp client ID util authentication is in place
+
+
 import type {
   AppPreset,
   RunSummary,
@@ -281,14 +284,14 @@ export const useShellStore = create<ShellState>((set, get) => {
         runSnapshots: { ...state.runSnapshots, [runId]: snapshot },
       })),
 
+
     loadRuns: async () => {
-      if (USE_MOCKS) {
-        // just ensure attachPresetInfo is applied
-        set({ runs: fakeRuns.map(attachPresetInfo) });
-        return;
+      try {
+        const data = await listRuns();
+        set({ runs: data.runs });
+      } catch (err) {
+        console.error("Failed to load runs", err);
       }
-      const data = await listRuns();
-      get().setRuns(data.runs);
     },
 
     loadRunSnapshot: async (runId: string) => {
@@ -309,6 +312,7 @@ export const useShellStore = create<ShellState>((set, get) => {
     },
 
     startRunForPreset: async (presetId: string) => {
+
       const preset = get().getPresetById(presetId);
       if (!preset) throw new Error(`Preset not found: ${presetId}`);
 
@@ -327,11 +331,13 @@ export const useShellStore = create<ShellState>((set, get) => {
         return runId;
       }
 
+      const clientId = getClientId();
+
       const body: RunCreateRequest = {
         run_id: null,
         inputs: {},
         run_config: {},
-        tags: [preset.id],
+        tags: [preset.id, `client:${clientId}`],
       };
       const resp = await startRun(preset.graphId, body);
       const summary: RunSummary = {
@@ -377,7 +383,7 @@ export const useShellStore = create<ShellState>((set, get) => {
         },
       }));
     },
-    
+
     loadGraphDetail: async (graphId: string) => {
       const existing = get().graphDetails[graphId];
       if (existing) return; // simple memoization

@@ -9,6 +9,7 @@ import { Separator } from "../components/ui/separator";
 import type { RunCreateRequest } from "../lib/types";
 import { startRun } from "../lib/api";
 import { Toaster, toast } from "sonner";
+import { getClientId } from "../utils/clientId";
 
 const RunLaunchPage: React.FC = () => {
   const { appId } = useParams<{ appId: string }>();
@@ -106,7 +107,7 @@ const RunLaunchPage: React.FC = () => {
         run_id: null,
         inputs,
         run_config: runConfig,
-        tags: [preset.id],
+        tags: [preset.id, `client:${getClientId()}`],
       };
 
 

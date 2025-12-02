@@ -1,4 +1,5 @@
 // src/lib/api.ts
+import { getClientId } from "@/utils/clientId";
 import type {
   RunListResponse,
   RunSummary,
@@ -24,8 +25,19 @@ import type {
 const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relative or absolute
 
 
+// export async function listRuns(): Promise<RunListResponse> {
+//   const res = await fetch(`${API_BASE}/runs`);
+//   if (!res.ok) throw new Error("Failed to fetch runs");
+//   return res.json();
+// }
+  
 export async function listRuns(): Promise<RunListResponse> {
-  const res = await fetch(`${API_BASE}/runs`);
+  const clientId = getClientId();
+
+  const url = new URL(`${API_BASE}/runs`, window.location.origin);
+  url.searchParams.set("client_id", clientId);
+
+  const res = await fetch(url.toString());
   if (!res.ok) throw new Error("Failed to fetch runs");
   return res.json();
 }
@@ -46,6 +58,7 @@ export async function startRun(
   graphId: string,
   body: RunCreateRequest
 ): Promise<RunCreateResponse> {
+  console.log("Starting run for graph:", graphId, "with body:", body);
   const res = await fetch(`${API_BASE}/graphs/${graphId}/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

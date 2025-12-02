@@ -5,6 +5,7 @@ import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { PaneLayout } from "./PaneLayout";
 import { Toaster } from "../components/ui/sonner";
+import { RunsPollingBridge } from "../components/shell/RunsPollingBridge";
 
 
 const AppShell: React.FC = () => {
@@ -19,7 +20,8 @@ const AppShell: React.FC = () => {
         </div>
         {/* Global toaster for notifications */}
         <Toaster />
-
+        {/* Runs polling bridge */}
+        <RunsPollingBridge />
       </div>
     </div>
   );
