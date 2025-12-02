@@ -24,6 +24,22 @@ const DashboardPage: React.FC = () => {
   const loadStats = useShellStore((s) => s.loadStats);
   const messagesByRunId = useChannelStore((s) => s.messagesByRunId);
   const getUnreadForRun = useChannelStore((s) => s.getUnreadForRun);
+  const getPresetByGraphId = useShellStore((s) => s.getPresetByGraphId);
+
+  // aggregate unread by run
+const unreadSummary = React.useMemo(() => {
+  if (!runs || runs.length === 0) {
+    return { totalUnread: 0, runsWithUnread: [] as { runId: string; unread: number }[] };
+  }
+
+  const runsWithUnread = runs
+    .map((r) => ({ runId: r.run_id, unread: getUnreadForRun(r.run_id) }))
+    .filter((e) => e.unread > 0);
+
+  const totalUnread = runsWithUnread.reduce((sum, e) => sum + e.unread, 0);
+
+  return { totalUnread, runsWithUnread };
+}, [runs, getUnreadForRun]);
 
   // Initial load
   React.useEffect(() => {
@@ -112,6 +128,15 @@ const DashboardPage: React.FC = () => {
 
   const totalUnreadRuns = runsWithUnread.length;
 
+  const sortedRuns = React.useMemo(
+    () =>
+      [...runs].sort((a, b) => {
+        const ta = a.started_at ? new Date(a.started_at).getTime() : 0;
+        const tb = b.started_at ? new Date(b.started_at).getTime() : 0;
+        return tb - ta;
+      }),
+    [runs]
+  );
 
   return (
     <div className="space-y-4">
@@ -175,69 +200,73 @@ const DashboardPage: React.FC = () => {
 
       {/* Bottom grid – recent runs + channel mock (unchanged) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 shadow-[var(--ag-shadow-soft)]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Recent runs
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {/* Column labels */}
-            <div className="grid grid-cols-[2.4fr_1.6fr_1.2fr_0.8fr] text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span>Run ID</span>
-              <span>App</span>
-              <span>Status</span>
-              <span>Duration</span>
-            </div>
-            <Separator />
-            {runs.length === 0 && (
-              <div className="text-[11px] text-muted-foreground mt-2">
-                No runs yet. Start a new run from any preset to see it here.
-              </div>
-            )}
-            {runs.map((run: RunSummary) => (
-              <div
-                key={run.run_id}
-                className="grid grid-cols-[2.4fr_1.6fr_1.2fr_0.8fr] items-center text-xs py-1.5 px-1 rounded-md hover:bg-muted/60"
-              >
-                <span className="font-mono text-foreground/80 truncate">
-                  <Link
-                    to={`/runs/${run.run_id}`}
-                    className="hover:underline"
-                  >
-                    {run.run_id}
-                  </Link>
-                </span>
-                <span className="text-muted-foreground truncate">
-                  {run.appName ?? run.appId ?? "—"}
-                </span>
-                <div className="flex justify-start">
-                  <span
-                    className={
-                      run.status === "failed"
-                        ? "inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
-                        : run.status === "running"
-                          ? "inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                          : "inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                    }
-                  >
-                    {run.status}
-                  </span>
-                </div>
+       <Card className="lg:col-span-2 shadow-[var(--ag-shadow-soft)]">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Recent runs
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2 text-sm">
+        {/* Column labels */}
+        <div className="grid grid-cols-[2.4fr_1.6fr_1.2fr_0.8fr] text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <span>Run ID</span>
+          <span>App</span>
+          <span>Status</span>
+          <span>Duration</span>
+        </div>
+        <Separator />
+        {sortedRuns.length === 0 && (
+          <div className="text-[11px] text-muted-foreground mt-2">
+            No runs yet. Start a new run from any preset to see it here.
+          </div>
+        )}
+        {sortedRuns.map((run: RunSummary) => {
+          // 🔑 Derive app info from presets every render
+          const preset = getPresetByGraphId(run.graph_id);
+          const appLabel = preset?.name ?? preset?.id ?? "—";
 
-                <span className="text-muted-foreground">
-                  {run.started_at && run.finished_at
-                    ? `${Math.round(
-                      (new Date(run.finished_at).getTime() -
-                        new Date(run.started_at).getTime()) /
-                      1000
-                    )}s`
-                    : "-"}
-                </span>
+          const duration =
+            run.started_at && run.finished_at
+              ? `${Math.round(
+                  (new Date(run.finished_at).getTime() -
+                    new Date(run.started_at).getTime()) /
+                    1000
+                )}s`
+              : "–";
+
+          const statusClass =
+            run.status === "failed"
+              ? "inline-flex items-center px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+              : run.status === "running"
+              ? "inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+              : "inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+
+          return (
+            <div
+              key={run.run_id}
+              className="grid grid-cols-[2.4fr_1.6fr_1.2fr_0.8fr] items-center text-xs py-1.5 px-1 rounded-md hover:bg-muted/60"
+            >
+              <span className="font-mono text-foreground/80 truncate">
+                <Link to={`/runs/${run.run_id}`} className="hover:underline">
+                  {run.run_id}
+                </Link>
+              </span>
+
+              {/* App column – now stable */}
+              <span className="text-muted-foreground truncate">
+                {appLabel}
+              </span>
+
+              <div className="flex justify-start">
+                <span className={statusClass}>{run.status}</span>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+
+              <span className="text-muted-foreground">{duration}</span>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
 
         <Card
   className={cn(
@@ -264,7 +293,126 @@ const DashboardPage: React.FC = () => {
     </div>
   </CardHeader>
 
-  <CardContent className="space-y-2 text-xs text-card-foreground">
+<CardContent className="space-y-2 text-xs text-card-foreground">
+  {/* Summary row */}
+  <div className="flex items-center justify-between">
+    <div className="flex flex-col">
+      <span className="text-[11px] text-muted-foreground">
+        Channel activity
+      </span>
+      {unreadSummary.totalUnread > 0 ? (
+        <span className="text-[11px]">
+          <span className="font-semibold">{unreadSummary.totalUnread}</span>{" "}
+          unread message{unreadSummary.totalUnread > 1 ? "s" : ""} in{" "}
+          <span className="font-semibold">
+            {unreadSummary.runsWithUnread.length}
+          </span>{" "}
+          run{unreadSummary.runsWithUnread.length > 1 ? "s" : ""}.
+        </span>
+      ) : (
+        <span className="text-[11px] text-muted-foreground">
+          No unread messages.
+        </span>
+      )}
+    </div>
+  </div>
+
+  {/* Recent activity list */}
+  {recentEvents.length === 0 ? (
+    <div className="text-[11px] text-muted-foreground">
+      No channel messages yet. When runs ask for input or send updates,
+      they’ll show up here.
+    </div>
+  ) : (
+    <div className="space-y-1.5">
+      {recentEvents.slice(0, 4).map(({ runId, ev }) => {
+        const ts = Number.isFinite(ev.ts)
+          ? new Date(ev.ts * 1000).toLocaleTimeString(undefined, {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+
+        const text =
+          ev.text?.length && ev.text.length > 80
+            ? ev.text.slice(0, 77) + "…"
+            : ev.text ?? "";
+
+        const isUser =
+          ev.type === "user.message" ||
+          ev.meta?.direction === "inbound" ||
+          ev.meta?.role === "user";
+
+        const label = isUser
+          ? "user"
+          : ev.type.startsWith("agent.")
+          ? "agent"
+          : "system";
+
+        const unread = getUnreadForRun(runId);
+
+        // Try to get a nicer label (preset name > graph_id > short id)
+        const run = runs.find((r) => r.run_id === runId);
+        const preset = run ? getPresetByGraphId(run.graph_id) : undefined;
+        const runLabel =
+          preset?.name || run?.graph_id || runId.slice(0, 8);
+
+        return (
+          <Link
+            key={ev.id}
+            to={`/runs/${runId}?tab=channel`}
+            className={cn(
+              "flex items-center gap-2 rounded-md border border-border/60 bg-muted/40 px-2 py-1.5",
+              "hover:bg-muted/70 transition-colors"
+            )}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="font-medium text-[11px] text-foreground truncate max-w-[140px]">
+                  {runLabel}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {ts}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 mb-0.5">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {label}
+                </span>
+                {run && (
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {runId.slice(0, 6)}
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-foreground line-clamp-2">
+                {text || (
+                  <span className="text-muted-foreground">[no text]</span>
+                )}
+              </div>
+            </div>
+
+            {unread > 0 && (
+              <span className="inline-flex items-center justify-center rounded-full bg-brand/10 text-brand text-[10px] px-2 py-0.5">
+                {unread}
+              </span>
+            )}
+          </Link>
+        );
+      })}
+
+      {recentEvents.length > 4 && (
+        <div className="text-[10px] text-muted-foreground">
+          + {recentEvents.length - 4} more recent messages…
+        </div>
+      )}
+    </div>
+  )}
+</CardContent>
+
+
+  {/* <CardContent className="space-y-2 text-xs text-card-foreground">
     {recentEvents.length === 0 ? (
       <div className="text-[11px] text-muted-foreground">
         No channel messages yet. When runs send prompts or updates,
@@ -326,7 +474,7 @@ const DashboardPage: React.FC = () => {
         })}
       </div>
     )}
-  </CardContent>
+  </CardContent> */}
 </Card>
 
       </div>

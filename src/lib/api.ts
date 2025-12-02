@@ -260,18 +260,44 @@ export async function getLLMStats(
 
 
 // GET /api/v1/runs/{run_id}/channel/events?since_ts=...
+// export async function listRunChannelEvents(
+//   runId: string,
+//   sinceTs?: number
+// ): Promise<RunChannelEvent[]> {
+  
+//   const params: Record<string, any> = {};
+//   if (sinceTs != null) params.since_ts = sinceTs;
+  
+//   const res = await fetch(`/api/v1/runs/${runId}/channel/events?${new URLSearchParams(params)}`, {
+//     method: "GET",
+//   });
+//   // assuming backend returns a plain array of events
+//   if (!res.ok) throw new Error("Failed to fetch run channel events");
+//   return res.json() as Promise<RunChannelEvent[]>;
+// }
+
 export async function listRunChannelEvents(
   runId: string,
   sinceTs?: number
 ): Promise<RunChannelEvent[]> {
-  const params: Record<string, any> = {};
-  if (sinceTs != null) params.since_ts = sinceTs;
-  
-  const res = await fetch(`/api/v1/runs/${runId}/channel/events?${new URLSearchParams(params)}`, {
+  const clientId = getClientId();
+
+  // Build URL with query params
+  const url = new URL(`${API_BASE}/runs/${runId}/channel/events`, window.location.origin);
+
+  if (sinceTs != null) {
+    url.searchParams.set("since_ts", String(sinceTs));
+  }
+  url.searchParams.set("client_id", clientId);
+
+  const res = await fetch(url.toString(), {
     method: "GET",
   });
-  // assuming backend returns a plain array of events
-  if (!res.ok) throw new Error("Failed to fetch run channel events");
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch run channel events");
+  }
+
   return res.json() as Promise<RunChannelEvent[]>;
 }
 

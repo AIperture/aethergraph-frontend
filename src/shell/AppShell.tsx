@@ -6,7 +6,7 @@ import { Sidebar } from "./Sidebar";
 import { PaneLayout } from "./PaneLayout";
 import { Toaster } from "../components/ui/sonner";
 import { RunsPollingBridge } from "../components/shell/RunsPollingBridge";
-
+import { ChannelHud } from "../components/shell/ChannelHud";
 
 const AppShell: React.FC = () => {
   return (
@@ -22,6 +22,7 @@ const AppShell: React.FC = () => {
         <Toaster />
         {/* Runs polling bridge */}
         <RunsPollingBridge />
+        <ChannelHud />
       </div>
     </div>
   );

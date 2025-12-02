@@ -50,7 +50,7 @@ const RunWorkspacePage: React.FC = () => {
     );
     // Track previous unread count so we can detect increases
     const prevUnreadRef = React.useRef(unreadForRun);
-    
+
     const urlTab = (searchParams.get("tab") as TabKey | null) || "nodes";
     const activeTab: TabKey = validTabs.includes(urlTab) ? urlTab : "nodes";
     const [activeTabState, setActiveTab] = React.useState<TabKey>(activeTab);
@@ -80,6 +80,7 @@ const RunWorkspacePage: React.FC = () => {
     }, [runId, fetchNewEvents]);
 
     // Tell channelStore which run's channel is in focus
+    // Tell channelStore which run's channel is in focus
     React.useEffect(() => {
         if (!runId) return;
 
@@ -88,7 +89,13 @@ const RunWorkspacePage: React.FC = () => {
         } else {
             setActiveRunId(null);
         }
+
+        // IMPORTANT: clear active run when the workspace unmounts
+        return () => {
+            setActiveRunId(null);
+        };
     }, [runId, activeTab, setActiveRunId]);
+
 
     // Poll for snapshot + summary
     React.useEffect(() => {
@@ -131,30 +138,29 @@ const RunWorkspacePage: React.FC = () => {
     };
 
     React.useEffect(() => {
-  if (!runId) return;
+        if (!runId) return;
 
-  const prev = prevUnreadRef.current;
+        const prev = prevUnreadRef.current;
 
-  // Only fire when unread count increases and we're NOT already viewing Channel
-  // This only works in the Workspace page since we track activeTab here
-  // TODO: Later we can improve this with a global "current viewed run/channel" state
-  if (unreadForRun > prev && activeTab !== "channel") {
-    toast("New channel message", {
-      description: `Run ${runId.slice(0, 8)} has ${
-        unreadForRun
-      } unread message${unreadForRun > 1 ? "s" : ""}.`,
-      action: {
-        label: "Open channel",
-        onClick: () => handleTabClick("channel"),
-      },
-      // optional: make it feel a bit more "urgent"
-      duration: 8000,
-      className: "cursor-pointer",
-    });
-  }
+        // Only fire when unread count increases and we're NOT already viewing Channel
+        // This only works in the Workspace page since we track activeTab here
+        // TODO: Later we can improve this with a global "current viewed run/channel" state
+        if (unreadForRun > prev && activeTab !== "channel") {
+            toast("New channel message", {
+                description: `Run ${runId.slice(0, 8)} has ${unreadForRun
+                    } unread message${unreadForRun > 1 ? "s" : ""}.`,
+                action: {
+                    label: "Open channel",
+                    onClick: () => handleTabClick("channel"),
+                },
+                // optional: make it feel a bit more "urgent"
+                duration: 8000,
+                className: "cursor-pointer",
+            });
+        }
 
-  prevUnreadRef.current = unreadForRun;
-}, [unreadForRun, activeTab, runId]);
+        prevUnreadRef.current = unreadForRun;
+    }, [unreadForRun, activeTab, runId]);
 
 
     const status: RunStatus =
