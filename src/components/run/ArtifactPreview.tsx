@@ -1,8 +1,7 @@
-// src/components/run/ArtifactPreview.tsx
 import React from "react";
 import { ExternalLink, Download, FileText, Code, Maximize2 } from "lucide-react";
 import { getArtifactContentUrl, fetchArtifactTextContent } from "../../lib/api";
-import type { ArtifactMeta } from "../../lib/types"; // Adjusted import path to match your alias
+import type { ArtifactMeta } from "../../lib/types"; 
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
 
@@ -74,7 +73,7 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
   const downloadUrl = getArtifactContentUrl(artifact.artifact_id);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden w-full">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-2">
         <div className="flex items-center gap-2 overflow-hidden">
@@ -97,10 +96,10 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-auto bg-muted/10 p-4">
+      <div className="flex-1 min-h-0 overflow-auto bg-muted/10 p-4 w-full">
         {isImage && (
-          <div className="flex items-center justify-center min-h-full">
-            <div className="relative rounded-lg border border-border shadow-sm overflow-hidden bg-[url('https://transparenttextures.com/patterns/subtle-grey.png')] bg-white/50">
+          <div className="flex items-center justify-center min-h-full w-full">
+            <div className="relative rounded-lg border border-border shadow-sm overflow-hidden bg-[url('https://transparenttextures.com/patterns/subtle-grey.png')] bg-white/50 max-w-full">
                 <img
                     src={downloadUrl}
                     alt={artifact.kind}
@@ -111,9 +110,9 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
         )}
 
         {isTextLike && (
-          <div className="relative min-h-full">
+          <div className="relative min-h-full w-full max-w-full">
             {loading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[1px] z-10">
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-[1px] z-10 rounded-md">
                 <span className="text-xs text-muted-foreground animate-pulse">Loading content...</span>
               </div>
             )}
@@ -123,14 +122,18 @@ export const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({ artifact }) =>
                  Error loading content: {error}
                </div>
             ) : (
-                <div className="rounded-md border border-border/60 bg-card shadow-sm overflow-hidden">
+                <div className="rounded-md border border-border/60 bg-card shadow-sm overflow-hidden w-full max-w-full">
                     <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 border-b border-border/40 text-[10px] text-muted-foreground font-mono">
                          <Code className="h-3 w-3" />
                          <span>Source Viewer</span>
                     </div>
-                    <pre className="p-3 overflow-x-auto text-[11px] font-mono leading-relaxed text-foreground/90 tabular-nums">
-                        {content || <span className="opacity-50 italic">Empty file</span>}
-                    </pre>
+                    
+                    {/* Wrap PRE in a div with overflow-x-auto to contain wide text */}
+                    <div className="overflow-x-auto w-full">
+                        <pre className="p-3 text-[11px] font-mono leading-relaxed text-foreground/90 tabular-nums">
+                            {content || <span className="opacity-50 italic">Empty file</span>}
+                        </pre>
+                    </div>
                 </div>
             )}
           </div>

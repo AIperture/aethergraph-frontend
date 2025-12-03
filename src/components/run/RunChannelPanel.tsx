@@ -1,10 +1,11 @@
-// src/components/run/RunChannelPanel.tsx
 import * as React from "react";
 import { useChannelStore } from "../../store/channelStore";
 import type { RunChannelEvent } from "../../lib/types";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "../../lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface RunChannelPanelProps {
   runId: string;
@@ -110,13 +111,23 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
     // "Approval-like" events (session.* with buttons)
     const isApproval = ev.type.startsWith("session.") && hasButtons;
 
+    // Only progress / explicit system.* are system chips
     const isSystem =
-      (ev.type.startsWith("session.") && !hasButtons) ||
-      ev.type === "agent.progress.update";
+      ev.type === "agent.progress.update" ||
+      ev.type?.startsWith("system.");
+
+    // session.* should be rendered as agent-side chat
     const isAgent =
-      isApproval ||
-      ev.type.startsWith("agent.") ||
-      ev.type.startsWith("link.");
+      !isSystem &&
+      !(
+        ev.type === "user.message" ||
+        ev.meta?.direction === "inbound" ||
+        ev.meta?.role === "user"
+      ) &&
+      (ev.type?.startsWith("agent.") ||
+        ev.type?.startsWith("session.") ||
+        ev.type?.startsWith("link.") ||
+        ev.meta?.role === "assistant");
     const isUser =
       ev.type === "user.message" ||
       ev.meta?.direction === "inbound" ||
@@ -177,15 +188,31 @@ export const RunChannelPanel: React.FC<RunChannelPanelProps> = ({ runId }) => {
             )}
           </div>
 
-          {/* Text */}
+          {/* Text with Markdown support */}
           {ev.text && (
             <div
               className={cn(
-                "break-words whitespace-pre-wrap leading-relaxed [word-break:break-word]",
-                isUser ? "text-white/95" : "text-foreground/90",
+                "break-words leading-relaxed [word-break:break-word] [&>p]:mb-1 [&>p:last-child]:mb-0",
+                // Additional markdown styling corrections
+                "[&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium",
+                "[&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4",
+                "[&_code]:rounded [&_code]:px-1 [&_code]:font-mono [&_code]:text-[11px]",
+                "[&_pre]:p-2 [&_pre]:rounded-md [&_pre]:overflow-x-auto [&_pre]:my-2",
+                // Color tweaks for User vs Agent bubbles
+                isUser 
+                  ? "[&_a]:text-white [&_code]:bg-white/20 [&_code]:text-white [&_pre]:bg-white/10" 
+                  : "[&_a]:text-brand [&_code]:bg-muted [&_code]:text-foreground [&_pre]:bg-muted/50"
               )}
             >
-              {ev.text}
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    // Force external links to open in new tab
+                    a: ({node, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props} />
+                }}
+              >
+                {ev.text}
+              </ReactMarkdown>
             </div>
           )}
 

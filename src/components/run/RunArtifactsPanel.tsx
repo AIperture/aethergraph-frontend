@@ -221,7 +221,7 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
 
                         {/* Col 2: Icon + Name + Mime + Tags */}
                         <div className="flex items-start gap-2.5 min-w-0">
-                            <div className="mt-0.5">{getFileIcon(a.mime_type || "")}</div>
+                            <div className="mt-0.5">{getFileIcon(a.mime_type || "unknown")}</div>
                             <div className="flex flex-col min-w-0 flex-1">
                                 <span className={cn("font-medium truncate", isSelected ? "text-foreground" : "text-foreground/90")} title={a.kind}>
                                     {a.kind}
@@ -265,7 +265,8 @@ export const RunArtifactsPanel: React.FC<RunArtifactsPanelProps> = ({ runId }) =
       </div>
 
       {/* RIGHT PANE: Preview */}
-      <div className="flex flex-col min-h-0 flex-1 bg-background">
+      {/* ADDED min-w-0 to prevent flex blowout on wide content */}
+      <div className="flex flex-col min-h-0 flex-1 bg-background min-w-0">
          <ArtifactPreview artifact={selectedArtifact} />
       </div>
     </div>

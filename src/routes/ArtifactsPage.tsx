@@ -51,6 +51,9 @@ const ArtifactsPage: React.FC = () => {
     const selectGlobalArtifact = useShellStore((s) => s.selectGlobalArtifact);
     const pinArtifact = useShellStore((s) => s.pinArtifact);
 
+    // Force update trigger to handle in-place updates
+    const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
+
     // Filters
     const [scopeId, setScopeId] = React.useState<string>("");
     const [kind, setKind] = React.useState<string>("");
@@ -98,6 +101,7 @@ const ArtifactsPage: React.FC = () => {
         e.stopPropagation(); // Stop row selection
         try {
             await pinArtifact(artifact.artifact_id, pinned);
+            forceUpdate(); // Fix for UI not updating immediately
         } catch (err) {
             console.error("Failed to pin artifact", err);
         }
@@ -141,7 +145,7 @@ const ArtifactsPage: React.FC = () => {
         });
 
         return copy;
-    }, [artifacts, sortKey, sortDir]);
+    }, [artifacts, sortKey, sortDir, forceUpdate]); // Added forceUpdate as dependency to re-sort
 
     const clearFilters = () => {
         setScopeId("");
@@ -274,12 +278,12 @@ const ArtifactsPage: React.FC = () => {
                                         )}
                                     >
                                         {/* Pin */}
-                                        <div className="flex items-start justify-center pt-0.5">
+                                        <div className="flex items-start justify-center pt-0.5 relative z-10">
                                             <button
                                                 onClick={(e) => handlePinClick(e, a, !isPinned)}
                                                 className={cn(
-                                                    "transition-all hover:scale-110 focus:outline-none",
-                                                    isPinned ? "text-amber-400 opacity-100" : "text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-foreground"
+                                                    "transition-all hover:scale-110 focus:outline-none p-0.5 rounded-sm",
+                                                    isPinned ? "text-amber-400 opacity-100" : "text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted"
                                                 )}
                                             >
                                                 <Star className={cn("h-3.5 w-3.5", isPinned && "fill-current")} />
@@ -331,7 +335,8 @@ const ArtifactsPage: React.FC = () => {
                 </div>
 
                 {/* RIGHT: Preview */}
-                <div className="flex flex-col min-h-0 flex-1 bg-background">
+                {/* Added min-w-0 to prevent expansion on large content */}
+                <div className="flex flex-col min-h-0 flex-1 bg-background min-w-0">
                     <ArtifactPreview artifact={selectedArtifact} />
                 </div>
             </div>

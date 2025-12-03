@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { getClientId } from "@/utils/clientId"; // temp client ID util authentication is in place
 
-
+import { initialPresets } from "./initialPresets";
 import type {
   AppPreset,
   RunSummary,
@@ -133,39 +133,6 @@ interface ShellState {
 
 
 
-const initialPresets: AppPreset[] = [
-  {
-    id: "rnd-orchestrator",
-    name: "R&D Orchestrator",
-    badge: "Preset",
-    shortDescription:
-      "Coordinate multi-step simulation + analysis workflows with resumable runs.",
-    longDescription:
-      "This preset demonstrates how AetherGraph orchestrates a multi-stage R&D pipeline: ingest config, launch simulations, track runs, and summarize results with LLM-backed analysis.",
-    graphId: "rnd_orchestrator", // backend graph_id
-  },
-  {
-    id: "metalens-design",
-    name: "Metalens Design Loop",
-    badge: "Optics",
-    shortDescription:
-      "Spec → meta-atoms → surrogate model → lens → image analysis.",
-    longDescription:
-      "Designed for optics-focused demos. It walks through a simplified metalens pipeline, from specification to final image quality metrics, with resumable stages and artifact tracking.",
-    graphId: "metalens_design", // adjust to your real graph name
-  },
-  {
-    id: "game-agent",
-    name: "Game Agent Loop",
-    badge: "Experimental",
-    shortDescription:
-      "Env simulation → agent reaction → user feedback → agent refinement.",
-    longDescription:
-      "An experimental loop for game/NPC behavior, stitching together environment ticks, agent decisions, and user feedback as a single orchestrated run.",
-    graphId: "game_agent_loop", // adjust as needed
-  },
-];
-
 
 export const useShellStore = create<ShellState>((set, get) => {
   const attachPresetInfo = (run: RunSummary): RunSummary => {
@@ -264,6 +231,7 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getRunSnapshot: (runId) => {
       if (!runId) return undefined;
+      // console.log("returned snapshot for runId", runId, get().runSnapshots[runId]);
       return get().runSnapshots[runId];
     },
 

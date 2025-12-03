@@ -1,14 +1,17 @@
 // src/lib/types.ts
 
 // App preset (gallery + /apps/:appId)
-export interface AppPreset {
-  id: string;
+export type AppPreset = {
+  id: string;                 // route id; keep this == graphId
   name: string;
   badge: string;
   shortDescription: string;
   longDescription: string;
-  graphId: string; // << which graph this preset launches
-}
+  graphId: string;            // backend graph_id
+  category: "Core" | "R&D Lab" | "Experimental" | "Infra";
+  status: "available" | "coming-soon";
+  iconKey?: "chat" | "microscope" | "aperture" | "gamepad" | "sparkles" | "cpu" | "bolt";
+};
 
 
 // ---------- Runs ----------

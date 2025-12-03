@@ -37,28 +37,22 @@ const PresetRunnerPage: React.FC = () => {
   const { appId } = useParams<{ appId: string }>();
   const navigate = useNavigate();
 
-  // FIX: Select raw state data instead of derived data to prevent infinite loops.
-  // Using selectors that return new arrays (like .filter) causes strict equality checks to fail in Zustand, triggering endless re-renders.
-  const loadRuns = useShellStore((s) => s.loadRuns); 
-  const allRuns = useShellStore((s) => s.runs);
   const getPresetById = useShellStore((s) => s.getPresetById);
+  const getRunsByAppId = useShellStore((s) => s.getRunsByAppId);
+  const loadRuns = useShellStore((s) => s.loadRuns); // Import the action
 
-  // Derive state in render with useMemo
-  const preset = React.useMemo(() => getPresetById(appId), [getPresetById, appId]);
+  const preset = getPresetById(appId);
   
-  const runs = React.useMemo(() => {
-    if (!appId || !allRuns) return [];
-    // Filter runs that match the current app/preset
-    // Assuming graph_id or tag matches the appId. Adjust logic if your backend maps them differently.
-    return allRuns.filter(r => r.graph_id === appId || (r.tags && r.tags.includes(appId)));
-  }, [allRuns, appId]);
+  // Note: We use the preset.id (appId) here. Ensure your store logic matches runs by this ID 
+  // (or pass preset.graphId if your backend filters by graph_id)
+  const runs: RunSummary[] = getRunsByAppId(appId);
 
   const handleStartRun = () => {
     if (!appId) return;
     navigate(`/apps/${appId}/run`);
   };
 
-  // Fetch runs on mount so data appears even after a hard refresh
+  // FIX: Fetch runs on mount so data appears even after a hard refresh
   React.useEffect(() => {
     loadRuns();
   }, [loadRuns]);
@@ -111,7 +105,7 @@ const PresetRunnerPage: React.FC = () => {
                 Gallery
             </Button>
             <Button
-                variant="default" 
+                variant="default" // Primary action
                 size="sm"
                 className="text-xs gap-2"
                 onClick={handleStartRun}
