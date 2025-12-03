@@ -33,9 +33,22 @@ export const Header: React.FC = () => {
 
         <div className="h-4 w-px bg-border/60 mx-1 hidden md:block" />
 
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+        <a
+          href="https://github.com/AIperture/aethergraph"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub"
+          style={{ cursor: "pointer" }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            style={{ cursor: "pointer" }}
+          >
             <Github className="w-4 h-4" />
-        </Button>
+          </Button>
+        </a>
 
         <Button variant="default" size="sm" className="h-8 text-xs gap-2 px-3">
           <LogIn className="w-3.5 h-3.5" />

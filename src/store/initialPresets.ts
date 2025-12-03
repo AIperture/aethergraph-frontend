@@ -15,20 +15,43 @@ export const initialPresets: AppPreset[] = [
         category: "Core",
         status: "available",
         iconKey: "chat",
+        features: [
+            "Seeds prior chat turns so the agent can recall past context on first run.",
+            "Streams an interactive chat loop over the Channel service.",
+            "Logs every turn into Memory for later inspection and analysis.",
+            "Generates an LLM-based session summary and saves it as an artifact.",
+        ],
+        demoSteps: [
+            "Click \"Configure & Start\" to launch a new run.",
+            "Open the Channel panel and chat with the agent as you normally would.",
+            "Ask questions like \"What have we talked about so far?\" to test memory.",
+            "After the session ends, open the Artifacts tab to view the saved summary, and the Memory tab to inspect stored chat turns.",
+        ],
     },
 
     {
-        id: "channel_wizard", // route + logical app id
+        id: "channel_wizard",
         name: "Channel Wizard",
-        badge: "Channel",
+        badge: "Core",
         shortDescription:
             "Interactive experiment setup wizard using channels, approvals, and validation.",
         longDescription:
-            "A guided experiment setup flow powered entirely by AetherGraph’s channel service. The wizard asks for basic and advanced options, validates inputs, uses approval-style prompts, and then saves the final configuration as an artifact. Great for showcasing send_text, ask_text, and ask_approval all in one place.",
-        graphId: "channel_wizard",        // matches @graphify(name="channel_wizard")
-        category: "Core",                 // shows up under Core examples
-        status: "available",              // fully wired and runnable
-        iconKey: "chat",                  // will render with the chat/message icon in the gallery
+            "A guided experiment setup flow powered entirely by AetherGraph’s channel service. The wizard asks for basic and advanced options, validates inputs, uses approval-style prompts, and then saves the final configuration as an artifact.",
+        graphId: "channel_wizard",
+        category: "Core",
+        status: "available",
+        iconKey: "chat",
+        features: [
+            "Fully channel-driven wizard flow (ask_text + ask_approval).",
+            "Validates user input and allows restarting safely.",
+            "Saves the final configuration as a reusable artifact.",
+        ],
+        demoSteps: [
+            "Click “Configure & Start” to launch a new run.",
+            "Open the Channel panel and answer the wizard’s questions.",
+            "Toggle advanced mode and play with learning rate / debug flags.",
+            "After completion, open the Artifacts tab to inspect the saved config.",
+        ],
     },
 
     {
@@ -43,6 +66,18 @@ export const initialPresets: AppPreset[] = [
         category: "Core",
         status: "available",                // you’ll flip this once implemented
         iconKey: "sparkles",
+        features: [
+            "Iterative optimization loop with per-step metrics and gradient updates.",
+            "Saves checkpoints and final parameters as artifacts, including loss metrics.",
+            "Uses an LLM to summarize the optimization trajectory into a human-readable report.",
+            "Optionally generates a loss-vs-step plot and saves it as an artifact for visualization.",
+        ],
+        demoSteps: [
+            "Click \"Configure & Start\" to launch the toy optimization run.",
+            "Open the Channel panel to watch the optimization progress messages.",
+            "After completion, open the Artifacts tab to inspect checkpoints, final parameters, metrics, and the loss plot.",
+            "Optionally open the Memory tab to see logged optimization_step events for each iteration.",
+        ],
     },
     {
         id: "simple_copilot",
@@ -56,6 +91,19 @@ export const initialPresets: AppPreset[] = [
         category: "Core",
         status: "available",
         iconKey: "sparkles",
+        features: [
+            "LLM-based router that classifies each query into calculator, summarize, or direct_answer modes.",
+            "Calculator tool evaluates simple arithmetic expressions in a sandboxed way.",
+            "Summarizer tool uses the LLM to compress longer text into a short summary.",
+            "Direct answer mode uses the LLM as a normal chat assistant, with routing decisions recorded in Memory.",
+        ],
+        demoSteps: [
+            "Click \"Configure & Start\" to launch the copilot.",
+            "Open the Channel panel and ask a few normal questions to see direct answer mode.",
+            "Ask a math question like \"What is (10 - 3) * 4?\" to trigger calculator mode.",
+            "Paste a longer paragraph and ask for a summary to trigger summarizer mode.",
+            "Open the Memory tab and look for copilot_routing events to see how queries were classified.",
+        ],
     },
     {
         id: "toy_concurrency_demo",
@@ -68,7 +116,19 @@ export const initialPresets: AppPreset[] = [
         graphId: "toy_concurrency_demo", // matches @graphify(name="toy_concurrency_demo")
         category: "Core",
         status: "available",
-        iconKey: "bolt", 
+        iconKey: "bolt",
+        features: [
+            "Static map–reduce style graph built from small tool nodes.",
+            "Fan-out across multiple pick and work nodes to process items in parallel.",
+            "Fan-in through a single reduce_sum node to aggregate results.",
+            "Concurrency is controlled at run time via max_concurrency without changing the graph definition.",
+        ],
+        demoSteps: [
+            "Click \"Configure & Start\" to launch the concurrency demo.",
+            "In the Run Workspace, watch how multiple worker nodes execute concurrently.",
+            "Inspect the node logs to see overlapping pick() and work() activity.",
+            "Rerun this preset later with different max_concurrency settings (e.g. 1 vs 5) to compare sequential vs parallel behavior.",
+        ],
     },
 
     {

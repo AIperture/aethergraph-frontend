@@ -91,7 +91,7 @@ export const Sidebar: React.FC = () => {
               return (
                 <li key={app.id}>
                   <Link
-                    to={`/apps/${app.id}`}
+                    to={`/apps/${app.id}`} // Default to run tab
                     className={cn(
                       "group flex items-center justify-between px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                       isActive

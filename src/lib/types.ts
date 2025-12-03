@@ -11,6 +11,8 @@ export type AppPreset = {
   category: "Core" | "R&D Lab" | "Experimental" | "Infra";
   status: "available" | "coming-soon";
   iconKey?: "chat" | "microscope" | "aperture" | "gamepad" | "sparkles" | "cpu" | "bolt";
+  features?: string[];
+  demoSteps?: string[];
 };
 
 

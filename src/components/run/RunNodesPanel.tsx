@@ -28,6 +28,42 @@ interface RunNodesPanelProps {
   edges: EdgeSnapshot[];
 }
 
+type SimpleStatus =
+  | "pending"
+  | "running"
+  | "failed"
+  | "succeeded"
+  | "waiting"
+  | "canceled"
+  | "other";
+
+function normalizeStatus(raw: string | undefined | null): SimpleStatus {
+  if (!raw) return "other";
+
+  const s = raw.toLowerCase();
+
+  // Node-level waiting states
+  if (
+    s === "waiting" ||
+    s.startsWith("waiting_") // WAITING_HUMAN, WAITING_EXTERNAL, ...
+  ) {
+    return "waiting";
+  }
+
+  // Run-level / node-level cancellation
+  if (s === "cancelled" || s === "canceled" || s === "cancellation_requested") {
+    return "canceled";
+  }
+
+  // Basic graph states
+  if (s === "running") return "running";
+  if (s === "failed" || s === "failed_timeout") return "failed";
+  if (s === "pending") return "pending";
+  if (s === "done" || s === "skipped") return "succeeded";
+
+  return "other";
+}
+
 // --- Icons ---
 const NodeIcon = () => (
   <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
@@ -71,11 +107,21 @@ const AgNode: React.FC<{ data: any; selected?: boolean }> = ({ data, selected })
   const { nodeId, status, toolName } = data;
 
   // Status-based border coloring
-  const statusColor = 
-    status === "running" ? "border-brand shadow-[0_0_10px_-3px_rgba(var(--brand-rgb),0.5)]" :
-    status === "failed" ? "border-red-500/60" :
-    status === "pending" ? "border-amber-400/60" :
-    "border-border/80"; // success or default
+  const simpleStatus = normalizeStatus(status);
+
+  // Status-based border coloring
+  const statusColor =
+    simpleStatus === "running"
+      ? "border-brand shadow-[0_0_10px_-3px_rgba(var(--brand-rgb),0.5)]"
+      : simpleStatus === "failed"
+      ? "border-red-500/60"
+      : simpleStatus === "pending"
+      ? "border-amber-400/60"
+      : simpleStatus === "waiting"
+      ? "border-sky-500/60" // TODO: tweak color later
+      : simpleStatus === "canceled"
+      ? "border-slate-500/60" // TODO: tweak color later
+      : "border-border/80"; // succeeded/other
 
   const selectedClass = selected ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "";
 
@@ -98,14 +144,23 @@ const AgNode: React.FC<{ data: any; selected?: boolean }> = ({ data, selected })
               {nodeId}
             </span>
         </div>
-        <div 
-            className={cn(
-                "h-1.5 w-1.5 rounded-full shrink-0",
-                status === "running" ? "bg-brand animate-pulse" :
-                status === "failed" ? "bg-red-500" :
-                status === "pending" ? "bg-amber-400" : "bg-emerald-500"
-            )} 
+        <div
+          className={cn(
+            "h-1.5 w-1.5 rounded-full shrink-0",
+            simpleStatus === "running"
+              ? "bg-brand animate-pulse"
+              : simpleStatus === "failed"
+              ? "bg-red-500"
+              : simpleStatus === "pending"
+              ? "bg-amber-400"
+              : simpleStatus === "waiting"
+              ? "bg-sky-400" // placeholder waiting color
+              : simpleStatus === "canceled"
+              ? "bg-slate-400" // placeholder canceled color
+              : "bg-emerald-500"
+          )}
         />
+
       </div>
 
       {/* Footer: Tool Name */}
@@ -209,6 +264,7 @@ const baseEdges = React.useMemo<Edge[]>(() => {
       </div>
     );
   }
+
 
   return (
     <div className="flex h-full flex-col">

@@ -219,7 +219,6 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getRunsByAppId: (appId) => {
       if (!appId) return get().runs;
-      get().runs.forEach((r) => console.log(r.appId));
       const out = get().runs.filter((r) => r.appId === appId);
       return out;
     },

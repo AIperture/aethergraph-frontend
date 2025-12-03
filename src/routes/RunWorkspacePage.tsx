@@ -142,8 +142,8 @@ const RunWorkspacePage: React.FC = () => {
   const runInputs = runParams?.inputs ?? {};
   const runConfig = runParams?.run_config ?? {};
   const runTags: string[] = runParams?.tags ?? [];
-  const hasFailedNodes = nodes.some((n) => n.status === "failed");
-  const canResume = status === "failed" && hasFailedNodes && !!runParams;
+  const hasFailedNodes = nodes.some((n) => n.status === "failed" || n.status === "canceled");
+  const canResume = (status === "failed" || status === "canceled") && hasFailedNodes && !!runParams;
 
   // --- Handlers (Original Logic Preserved) ---
   const handleCancel = async () => {
