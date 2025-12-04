@@ -1,44 +1,30 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { StatsCard } from "../components/core/StatsCard"; 
+import { StatsCard } from "../components/core/StatsCard";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Separator } from "../components/ui/separator";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useShellStore } from "../store/shellStore";
 import type { RunSummary } from "../lib/types";
+import { statusChipClass, normalizeStatus } from "../components/run/runStatusUtils";
+
 
 import { useChannelStore } from "../store/channelStore";
 import type { RunChannelEvent } from "../lib/types";
 import { cn } from "../lib/utils";
-import { 
-  Activity, 
-  Clock, 
-  MessageSquare, 
-  Play, 
-  LayoutDashboard, 
+import {
+  Activity,
+  Clock,
+  MessageSquare,
+  Play,
+  LayoutDashboard,
   Server,
   Zap,
   History,
   Terminal,
-  Database 
+  Database
 } from "lucide-react";
 
-// Local helper for status styles to ensure consistency without relying on external file if missing
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case "running":
-      return "bg-brand/10 text-brand border-brand/20";
-    case "failed":
-      return "bg-red-500/10 text-red-600 border-red-200 dark:border-red-900/30 dark:text-red-400";
-    case "succeeded":
-      return "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-900/30 dark:text-emerald-400";
-    case "pending":
-      return "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900/30 dark:text-amber-400";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
-};
 
 const DashboardPage: React.FC = () => {
   // Store slices
@@ -72,13 +58,17 @@ const DashboardPage: React.FC = () => {
   // Initial load
   React.useEffect(() => {
     // Fetch runs list AND aggregates on mount
-    loadRuns(); 
+    loadRuns();
     loadStats("24h");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ---- Derived run stats ----
-  const activeCount = runs.filter((r) => r.status === "running").length;
+  const activeCount = runs.filter((r) => {
+    const s = normalizeStatus(r.status);
+    // Count both actively running and waiting runs as "active"
+    return s === "running" || s === "waiting";
+  }).length;
   const totalRuns = runs.length;
 
   const avgRunTimeLabel = React.useMemo(() => {
@@ -169,23 +159,23 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] gap-4 w-full max-w-[1800px] mx-auto p-4 md:p-6">
-      
+
       {/* 1. Dashboard Header */}
       <div className="shrink-0 flex items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                <LayoutDashboard className="w-5 h-5" />
+              <LayoutDashboard className="w-5 h-5" />
             </div>
             <h1 className="text-xl font-semibold text-foreground tracking-tight">
-                Dashboard
+              Dashboard
             </h1>
           </div>
           <p className="text-xs text-muted-foreground ml-9">
             Overview of your active runs, system health, and recent activity.
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/60 bg-muted/40 text-[10px] text-muted-foreground">
             <Server className="w-3 h-3 text-emerald-500" />
@@ -235,181 +225,184 @@ const DashboardPage: React.FC = () => {
 
       {/* 3. Main Content Grid */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        
+
         {/* LEFT: Recent Runs Table */}
         <Card className="lg:col-span-2 shadow-sm border-border/60 flex flex-col overflow-hidden h-[500px] lg:h-auto">
           <CardHeader className="shrink-0 border-b border-border/40 bg-muted/30 px-4 py-3">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-muted-foreground" />
-                    <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Recent Runs
-                    </CardTitle>
-                </div>
-                <Badge variant="outline" className="text-[10px] h-5 bg-background">{sortedRuns.length} Total</Badge>
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-muted-foreground" />
+                <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Recent Runs
+                </CardTitle>
+              </div>
+              <Badge variant="outline" className="text-[10px] h-5 bg-background">{sortedRuns.length} Total</Badge>
             </div>
           </CardHeader>
-          
+
           <CardContent className="flex-1 overflow-y-auto p-0 min-h-0 bg-background">
             <div className="min-w-[600px]"> {/* Ensure min width for table scrolling */}
-                {/* Table Header */}
-                <div className="sticky top-0 z-10 grid grid-cols-[100px_1.5fr_100px_80px] gap-4 px-4 py-2 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                    <span>Run ID</span>
-                    <span>Application / Preset</span>
-                    <span>Status</span>
-                    <span className="text-right">Duration</span>
+              {/* Table Header */}
+              <div className="sticky top-0 z-10 grid grid-cols-[100px_1.5fr_100px_80px] gap-4 px-4 py-2 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <span>Run ID</span>
+                <span>Application / Preset</span>
+                <span>Status</span>
+                <span className="text-right">Duration</span>
+              </div>
+
+              {sortedRuns.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Play className="w-8 h-8 mb-2 opacity-20" />
+                  <span className="text-xs">No runs recorded yet.</span>
                 </div>
+              ) : (
+                <div className="divide-y divide-border/40">
+                  {sortedRuns.map((run: RunSummary) => {
+                    const preset = getPresetByGraphId(run.graph_id);
+                    const appLabel = preset?.name ?? preset?.id ?? run.graph_id ?? "—";
 
-                {sortedRuns.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                        <Play className="w-8 h-8 mb-2 opacity-20" />
-                        <span className="text-xs">No runs recorded yet.</span>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-border/40">
-                    {sortedRuns.map((run: RunSummary) => {
-                        const preset = getPresetByGraphId(run.graph_id);
-                        const appLabel = preset?.name ?? preset?.id ?? run.graph_id ?? "—";
-                        
-                        const duration = run.started_at && run.finished_at
-                        ? `${Math.round((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s`
-                        : "—";
+                    const duration = run.started_at && run.finished_at
+                      ? `${Math.round((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000)}s`
+                      : "—";
 
-                        return (
-                        <div key={run.run_id} className="group grid grid-cols-[100px_1.5fr_100px_80px] gap-4 items-center px-4 py-3 hover:bg-muted/30 transition-colors text-xs">
-                            <Link 
-                                to={`/runs/${run.run_id}`} 
-                                className="font-mono text-foreground/80 hover:text-brand hover:underline truncate"
-                            >
-                                {run.run_id.slice(0, 8)}
-                            </Link>
-                            
-                            <div className="flex items-center gap-2 min-w-0">
-                                <div className="p-1 rounded bg-muted/50 text-muted-foreground"><Terminal className="w-3 h-3" /></div>
-                                <span className="truncate text-foreground/90 font-medium" title={appLabel}>{appLabel}</span>
-                            </div>
+                    return (
+                      <div key={run.run_id} className="group grid grid-cols-[100px_1.5fr_100px_80px] gap-4 items-center px-4 py-3 hover:bg-muted/30 transition-colors text-xs">
+                        <Link
+                          to={`/runs/${run.run_id}`}
+                          className="font-mono text-foreground/80 hover:text-brand hover:underline truncate"
+                        >
+                          {run.run_id.slice(0, 8)}
+                        </Link>
 
-                            <div>
-                                <span className={cn(
-                                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border capitalize",
-                                    getStatusStyles(run.status)
-                                )}>
-                                    {run.status.replace("_", " ")}
-                                </span>
-                            </div>
-
-                            <div className="text-right font-mono text-muted-foreground text-[11px]">
-                                {duration}
-                            </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="p-1 rounded bg-muted/50 text-muted-foreground"><Terminal className="w-3 h-3" /></div>
+                          <span className="truncate text-foreground/90 font-medium" title={appLabel}>{appLabel}</span>
                         </div>
-                        );
-                    })}
-                    </div>
-                )}
+
+                        <div>
+                          <span
+                            className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border capitalize",
+                              statusChipClass(run.status)
+                            )}
+                          >
+                            {run.status.replace("_", " ")}
+                          </span>
+
+                        </div>
+
+                        <div className="text-right font-mono text-muted-foreground text-[11px]">
+                          {duration}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* RIGHT: Channel Activity */}
         <Card className={cn(
-            "shadow-sm border-border/60 flex flex-col overflow-hidden h-[500px] lg:h-auto transition-colors",
-            totalUnreadRuns > 0 && "border-brand/40"
+          "shadow-sm border-border/60 flex flex-col overflow-hidden h-[500px] lg:h-auto transition-colors",
+          totalUnreadRuns > 0 && "border-brand/40"
         )}>
           <CardHeader className="shrink-0 border-b border-border/40 bg-muted/30 px-4 py-3">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                    <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Channel Activity
-                    </CardTitle>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <CardTitle className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Channel Activity
+                </CardTitle>
+              </div>
+              {totalUnreadRuns > 0 ? (
+                <div className="flex items-center gap-1.5 animate-pulse">
+                  <span className="h-2 w-2 rounded-full bg-brand" />
+                  <span className="text-[10px] font-medium text-brand">{totalUnreadRuns} active</span>
                 </div>
-                {totalUnreadRuns > 0 ? (
-                    <div className="flex items-center gap-1.5 animate-pulse">
-                        <span className="h-2 w-2 rounded-full bg-brand" />
-                        <span className="text-[10px] font-medium text-brand">{totalUnreadRuns} active</span>
-                    </div>
-                ) : (
-                    <span className="text-[10px] text-muted-foreground">All caught up</span>
-                )}
+              ) : (
+                <span className="text-[10px] text-muted-foreground">All caught up</span>
+              )}
             </div>
           </CardHeader>
 
           <CardContent className="flex-1 overflow-y-auto p-0 bg-background min-h-0">
             {recentEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-6 text-center">
-                    <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
-                        <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-xs font-medium text-foreground">Quiet on the channel</p>
-                    <p className="text-[10px] mt-1 opacity-70">When runs generate messages or require input, they will appear here.</p>
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-6 text-center">
+                <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                  <MessageSquare className="h-5 w-5 text-muted-foreground/50" />
                 </div>
+                <p className="text-xs font-medium text-foreground">Quiet on the channel</p>
+                <p className="text-[10px] mt-1 opacity-70">When runs generate messages or require input, they will appear here.</p>
+              </div>
             ) : (
-                <div className="flex flex-col divide-y divide-border/40">
-                    {recentEvents.map(({ runId, ev }) => {
-                        const ts = Number.isFinite(ev.ts)
-                            ? new Date(ev.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : "";
-                        
-                        const text = ev.text?.length && ev.text.length > 80
-                            ? ev.text.slice(0, 77) + "…"
-                            : ev.text ?? "New event";
+              <div className="flex flex-col divide-y divide-border/40">
+                {recentEvents.map(({ runId, ev }) => {
+                  const ts = Number.isFinite(ev.ts)
+                    ? new Date(ev.ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : "";
 
-                        const isUser = ev.type === "user.message" || ev.meta?.role === "user";
-                        const unread = getUnreadForRun(runId);
-                        
-                        const run = runs.find((r) => r.run_id === runId);
-                        const preset = run ? getPresetByGraphId(run.graph_id) : undefined;
-                        const runLabel = preset?.name || run?.graph_id || runId.slice(0, 8);
+                  const text = ev.text?.length && ev.text.length > 80
+                    ? ev.text.slice(0, 77) + "…"
+                    : ev.text ?? "New event";
 
-                        return (
-                            <Link 
-                                key={ev.id} 
-                                to={`/runs/${runId}?tab=channel`}
-                                className="relative flex gap-3 p-4 hover:bg-muted/30 transition-colors group"
-                            >
-                                {/* Left Indicator */}
-                                <div className="mt-1 shrink-0">
-                                    {unread > 0 ? (
-                                        <div className="h-2 w-2 rounded-full bg-brand ring-4 ring-brand/10" />
-                                    ) : (
-                                        <div className="h-2 w-2 rounded-full bg-muted-foreground/20 group-hover:bg-muted-foreground/40 transition-colors" />
-                                    )}
-                                </div>
+                  const isUser = ev.type === "user.message" || ev.meta?.role === "user";
+                  const unread = getUnreadForRun(runId);
 
-                                <div className="flex-1 min-w-0 space-y-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-semibold text-foreground truncate">
-                                            {runLabel}
-                                        </span>
-                                        <span className="text-[10px] text-muted-foreground font-mono whitespace-nowrap">
-                                            {ts}
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="h-4 px-1 text-[9px] uppercase tracking-wider rounded-[3px]">
-                                            {isUser ? "You" : "Agent"}
-                                        </Badge>
-                                        <span className="text-[10px] text-muted-foreground/50 font-mono">#{runId.slice(0,6)}</span>
-                                    </div>
+                  const run = runs.find((r) => r.run_id === runId);
+                  const preset = run ? getPresetByGraphId(run.graph_id) : undefined;
+                  const runLabel = preset?.name || run?.graph_id || runId.slice(0, 8);
 
-                                    <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2 pt-0.5 group-hover:text-foreground/90 transition-colors">
-                                        {text}
-                                    </p>
-                                </div>
-                            </Link>
-                        );
-                    })}
-                    
-                    {/* View More Link */}
-                    {recentEvents.length >= 3 && (
-                        <div className="p-2 text-center bg-muted/10">
-                            <span className="text-[10px] text-muted-foreground font-medium">
-                                Showing recent activity
-                            </span>
+                  return (
+                    <Link
+                      key={ev.id}
+                      to={`/runs/${runId}?tab=channel`}
+                      className="relative flex gap-3 p-4 hover:bg-muted/30 transition-colors group"
+                    >
+                      {/* Left Indicator */}
+                      <div className="mt-1 shrink-0">
+                        {unread > 0 ? (
+                          <div className="h-2 w-2 rounded-full bg-brand ring-4 ring-brand/10" />
+                        ) : (
+                          <div className="h-2 w-2 rounded-full bg-muted-foreground/20 group-hover:bg-muted-foreground/40 transition-colors" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-foreground truncate">
+                            {runLabel}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono whitespace-nowrap">
+                            {ts}
+                          </span>
                         </div>
-                    )}
-                </div>
+
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="h-4 px-1 text-[9px] uppercase tracking-wider rounded-[3px]">
+                            {isUser ? "You" : "Agent"}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground/50 font-mono">#{runId.slice(0, 6)}</span>
+                        </div>
+
+                        <p className="text-[11px] leading-relaxed text-muted-foreground line-clamp-2 pt-0.5 group-hover:text-foreground/90 transition-colors">
+                          {text}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {/* View More Link */}
+                {recentEvents.length >= 3 && (
+                  <div className="p-2 text-center bg-muted/10">
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      Showing recent activity
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

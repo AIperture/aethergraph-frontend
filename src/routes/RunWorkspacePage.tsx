@@ -18,9 +18,10 @@ import { RunTimelinePanel } from "../components/run/RunTimelinePanel";
 import { RunChannelPanel } from "../components/run/RunChannelPanel";
 import { RunNodesPanel } from "../components/run/RunNodesPanel";
 
-import { statusChipClass, formatDate } from "../components/run/runStatusUtils";
+import { statusChipClass, formatDate, normalizeStatus } from "../components/run/runStatusUtils";
 import { useChannelStore } from "../store/channelStore";
 import { cn } from "../lib/utils";
+import { getClientId } from "@/utils/clientId";
 
 type TabKey = "nodes" | "timeline" | "artifacts" | "memory" | "channel";
 const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "channel"];
@@ -43,12 +44,12 @@ const RunWorkspacePage: React.FC = () => {
   const unreadForRun = useChannelStore((s) =>
     runId ? s.getUnreadForRun(runId) : 0
   );
-  
+
   const prevUnreadRef = React.useRef(unreadForRun);
 
   const urlTab = (searchParams.get("tab") as TabKey | null) || "nodes";
   const activeTab: TabKey = validTabs.includes(urlTab) ? urlTab : "nodes";
-  
+
   const setActiveTab = (tab: TabKey) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
@@ -134,7 +135,11 @@ const RunWorkspacePage: React.FC = () => {
   }
 
   // --- Derived Data ---
-  const status: RunStatus = runSummary?.status ?? (snapshot ? "running" : "pending");
+  const status: RunStatus =
+    runSummary?.status ?? (snapshot ? "running" : "pending");
+  //   console.log(runSummary);
+  // console.log("Run status:", status);
+  const simpleStatus = normalizeStatus(status);
   const nodes: NodeSnapshot[] = snapshot?.nodes ?? [];
   const edges: EdgeSnapshot[] = snapshot?.edges ?? [];
   const graphId = runSummary?.graph_id ?? snapshot?.graph_id ?? null;
@@ -144,6 +149,10 @@ const RunWorkspacePage: React.FC = () => {
   const runTags: string[] = runParams?.tags ?? [];
   const hasFailedNodes = nodes.some((n) => n.status === "failed" || n.status === "canceled");
   const canResume = (status === "failed" || status === "canceled") && hasFailedNodes && !!runParams;
+
+
+  const setRunParamsForRun = useShellStore((s) => s.setRunParamsForRun);
+
 
   // --- Handlers (Original Logic Preserved) ---
   const handleCancel = async () => {
@@ -158,15 +167,20 @@ const RunWorkspacePage: React.FC = () => {
   };
 
   const handleResume = async () => {
+    console.log("Resuming run", runId);
     if (!graphId || !runId || !canResume || !runParams) return;
+
+    console.log(runParams);
+    console.log(runTags);
     setIsActing(true);
     try {
       const body: RunCreateRequest = {
         run_id: runId,
         inputs: runInputs,
         run_config: runConfig,
-        tags: runTags,
+        tags: runTags
       };
+
       toast("Resuming run", { description: "Restarting from failed nodes…" });
       await startRun(graphId, body);
     } catch (err: any) {
@@ -190,6 +204,13 @@ const RunWorkspacePage: React.FC = () => {
       const resp = await startRun(graphId, body);
       toast.success("New run started");
       navigate(`/runs/${resp.run_id}`);
+      // set the run parameters for the new run
+      setRunParamsForRun(resp.run_id, {
+        run_id: resp.run_id,
+        inputs: runInputs,
+        run_config: runConfig,
+        tags: runTags,
+      });
     } catch (err: any) {
       toast.error("Failed to start new run", { description: err?.message });
     } finally {
@@ -198,7 +219,7 @@ const RunWorkspacePage: React.FC = () => {
   };
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: "nodes", label: "Graph" }, 
+    { key: "nodes", label: "Graph" },
     { key: "timeline", label: "Timeline" },
     { key: "artifacts", label: "Artifacts" },
     { key: "memory", label: "Memory" },
@@ -208,7 +229,7 @@ const RunWorkspacePage: React.FC = () => {
   return (
     // Height Fix: Use calc(100vh - headerOffset). Adjust '3rem' depending on your main app layout padding.
     <div className="flex flex-col gap-4 h-[calc(100vh-2rem)] w-full max-w-[1800px] mx-auto">
-      
+
       {/* 1. Header Section (Shrink-0 to preserve size) */}
       <div className="shrink-0 flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-border/40 pb-4">
         <div className="space-y-1">
@@ -225,42 +246,42 @@ const RunWorkspacePage: React.FC = () => {
               {status.replace("_", " ")}
             </span>
           </div>
-          
+
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-             <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted/40 border border-border/40">
-                <span className="opacity-70">Graph:</span>
-                <span className="font-mono font-medium text-foreground">{runSummary?.graph_id ?? snapshot?.graph_id ?? "—"}</span>
-             </div>
-             <span className="text-border/60">|</span>
-             <span>Started {formatDate(runSummary?.started_at)}</span>
-             {runSummary?.finished_at && (
-                <>
-                  <span className="text-border/60">|</span>
-                  <span>Finished {formatDate(runSummary?.finished_at)}</span>
-                </>
-             )}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-muted/40 border border-border/40">
+              <span className="opacity-70">Graph:</span>
+              <span className="font-mono font-medium text-foreground">{runSummary?.graph_id ?? snapshot?.graph_id ?? "—"}</span>
+            </div>
+            <span className="text-border/60">|</span>
+            <span>Started {formatDate(runSummary?.started_at)}</span>
+            {runSummary?.finished_at && (
+              <>
+                <span className="text-border/60">|</span>
+                <span>Finished {formatDate(runSummary?.finished_at)}</span>
+              </>
+            )}
           </div>
         </div>
 
         {/* Original Button Logic Restored */}
         <div className="flex items-center gap-2">
           {canResume && (
-            <Button 
-                variant="default" // Changed to default to make it pop as primary action
-                size="sm" 
-                onClick={handleResume} 
-                disabled={isActing} 
-                className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+            <Button
+              variant="default" // Changed to default to make it pop as primary action
+              size="sm"
+              onClick={handleResume}
+              disabled={isActing}
+              className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
             >
-                Resume Failed Run
+              Resume Run
             </Button>
           )}
 
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleStartOver} 
-            disabled={isActing || !graphId} 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStartOver}
+            disabled={isActing || !graphId}
             className="h-8 text-xs"
           >
             Start Over
@@ -271,11 +292,12 @@ const RunWorkspacePage: React.FC = () => {
             size="sm"
             className="h-8 text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-200 dark:hover:bg-red-950/20"
             disabled={
-                isActing ||
-                status === "succeeded" ||
-                status === "failed" ||
-                status === "canceled"
+              isActing ||
+              simpleStatus === "succeeded" ||
+              simpleStatus === "failed" ||
+              simpleStatus === "canceled"
             }
+
             onClick={handleCancel}
           >
             Cancel Run
@@ -321,35 +343,35 @@ const RunWorkspacePage: React.FC = () => {
           their fixed height classes (e.g. h-[360px]) with `h-full`.
       */}
       <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border/40 bg-background/50 shadow-sm">
-        
+
         {activeTab === "nodes" && (
-           <div className="h-full w-full">
-               <RunNodesPanel nodes={nodes} edges={edges} />
-           </div>
+          <div className="h-full w-full">
+            <RunNodesPanel nodes={nodes} edges={edges} />
+          </div>
         )}
 
         {activeTab === "timeline" && (
-            <div className="h-full w-full">
-                <RunTimelinePanel nodes={nodes} />
-            </div>
+          <div className="h-full w-full">
+            <RunTimelinePanel nodes={nodes} />
+          </div>
         )}
 
         {activeTab === "artifacts" && runId && (
-            <div className="h-full w-full">
-                <RunArtifactsPanel runId={runId} />
-            </div>
+          <div className="h-full w-full">
+            <RunArtifactsPanel runId={runId} />
+          </div>
         )}
 
         {activeTab === "memory" && runId && (
-            <div className="h-full w-full">
-                <RunMemoryPanel scopeId={runId} />
-            </div>
+          <div className="h-full w-full">
+            <RunMemoryPanel scopeId={runId} />
+          </div>
         )}
 
         {activeTab === "channel" && (
-            <div className="h-full w-full">
-                <RunChannelPanel runId={runId} />
-            </div>
+          <div className="h-full w-full">
+            <RunChannelPanel runId={runId} />
+          </div>
         )}
       </div>
     </div>

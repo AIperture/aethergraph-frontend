@@ -2,7 +2,7 @@ import * as React from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Separator } from "../components/ui/separator";
+import { statusChipClass } from "../components/run/runStatusUtils";
 import { Badge } from "../components/ui/badge";
 import { useShellStore } from "../store/shellStore";
 import type { RunSummary } from "../lib/types";
@@ -17,21 +17,6 @@ import {
   ExternalLink
 } from "lucide-react";
 
-// Shared status style helper
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case "running":
-      return "bg-brand/10 text-brand border-brand/20";
-    case "failed":
-      return "bg-red-500/10 text-red-600 border-red-200 dark:border-red-900/30 dark:text-red-400";
-    case "succeeded":
-      return "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-900/30 dark:text-emerald-400";
-    case "pending":
-      return "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900/30 dark:text-amber-400";
-    default:
-      return "bg-muted text-muted-foreground border-border";
-  }
-};
 
 const PresetRunnerPage: React.FC = () => {
   const { appId } = useParams<{ appId: string }>();
@@ -119,7 +104,7 @@ const PresetRunnerPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         {/* Left: Description / Docs */}
-        
+
         <Card className="lg:col-span-2 shadow-sm border-border/60 flex flex-col h-full max-h-[500px] overflow-hidden">
           <CardHeader className="shrink-0 border-b border-border/40 bg-muted/30 px-4 py-3">
             <div className="flex items-center gap-2">
@@ -227,12 +212,15 @@ const PresetRunnerPage: React.FC = () => {
                       </Link>
                     </span>
 
-                    <span className={cn(
-                      "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium border capitalize",
-                      getStatusStyles(run.status)
-                    )}>
+                    <span
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-medium border capitalize",
+                        statusChipClass(run.status)
+                      )}
+                    >
                       {run.status.replace("_", " ")}
                     </span>
+
 
                     <span className="text-right font-mono text-muted-foreground text-[10px]">
                       {run.started_at && run.finished_at

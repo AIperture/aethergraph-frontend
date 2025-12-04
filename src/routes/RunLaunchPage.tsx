@@ -121,7 +121,7 @@ const RunLaunchPage: React.FC = () => {
         run_id: resp.run_id,       // optional, but fine to keep
         inputs,
         run_config: runConfig,
-        tags: [preset.id],
+        tags: [preset.id, `client:${getClientId()}`],
       });
 
       toast.success("Run started", {
