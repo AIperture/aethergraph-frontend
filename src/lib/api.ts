@@ -65,9 +65,24 @@ export async function startRun(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-
   });
-  if (!res.ok) throw new Error("Failed to start run");
+
+  if (!res.ok) {
+    let message = `Failed to start run (status ${res.status})`;
+    try {
+      const data = await res.json();
+      if (data?.detail) {
+        message = data.detail;
+      }
+    } catch {
+      // ignore JSON parse errors, keep default message
+    }
+
+    const err = new Error(message) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+
   return res.json();
 }
 

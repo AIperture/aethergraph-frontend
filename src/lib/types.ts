@@ -8,9 +8,9 @@ export type AppPreset = {
   shortDescription: string;
   longDescription: string;
   graphId: string;            // backend graph_id
-  category: "Core" | "R&D Lab" | "Experimental" | "Infra";
+  category: "Core" | "R&D Lab" | "Experimental" | "Infra" | "Productivity";
   status: "available" | "coming-soon";
-  iconKey?: "chat" | "microscope" | "aperture" | "gamepad" | "sparkles" | "cpu" | "bolt";
+  iconKey?: "chat" | "target" | "microscope" | "aperture" | "gamepad" | "sparkles" | "cpu" | "bolt" | "file-pen" | "server" | "database" | "rotate-ccw" | "line-chart" | "trending-up" | "flask" | "cog" | "beaker" | "projector" | "puzzle" | "lightbulb" | "robot" | "brain" | "network" | "chart-pie" | "code" | "cloud" | "shield-check" | "eye" | "book-open" | "hammer" | "wrench" | "bar-chart-2" | "repeat";
   features?: string[];
   demoSteps?: string[];
 };

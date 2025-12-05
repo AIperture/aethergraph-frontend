@@ -18,7 +18,19 @@ import {
   Sparkles,
   MessageCircle,
   Bolt,
-  Cpu
+  Cpu,
+  Server,
+  Database,
+  RotateCcw,
+  Repeat,
+  BarChart2,
+  Wrench,
+  Hammer,
+  Target,
+  LineChart,
+  Brain,
+  BookOpen,
+  FilePen
 } from "lucide-react";
 import { useShellStore } from "../store/shellStore";
 import type { AppPreset } from "../lib/types";
@@ -31,6 +43,9 @@ const AppGalleryPage: React.FC = () => {
     (p) => p.category === "R&D Lab" || p.category === "Experimental"
   );
   const infraPresets = presets.filter((p) => p.category === "Infra");
+  const productivityPresets = presets.filter(
+    (p) => p.category === "Productivity"
+  );
 
   const renderIcon = (preset: AppPreset) => {
     switch (preset.iconKey) {
@@ -48,6 +63,30 @@ const AppGalleryPage: React.FC = () => {
         return <Sparkles className="w-6 h-6 text-amber-500" />;
       case "bolt":
         return <Bolt className="w-6 h-6 text-amber-500" />;
+      case "server":
+        return <Server className="w-6 h-6 text-gray-500" />;
+      case "database":
+        return <Database className="w-6 h-6 text-cyan-500" />;
+      case "rotate-ccw":
+        return <RotateCcw className="w-6 h-6 text-green-500" />;
+      case "repeat":
+        return <Repeat className="w-6 h-6 text-amber-500" />;
+      case "bar-chart-2":
+        return <BarChart2 className="w-6 h-6 text-indigo-500" />;
+      case "wrench":
+        return <Wrench className="w-6 h-6 text-gray-500" />;
+      case "hammer":
+        return <Hammer className="w-6 h-6 text-red-500" />;
+      case "target":
+        return <Target className="w-6 h-6 text-red-500" />;
+      case "line-chart":
+        return <LineChart className="w-6 h-6 text-indigo-500" />;
+      case "brain":
+        return <Brain className="w-6 h-6 text-purple-500" />;
+      case "book-open":
+        return <BookOpen className="w-6 h-6 text-yellow-500" />;
+      case "file-pen":
+        return <FilePen className="w-6 h-6 text-green-500" />;
       default:
         return <Sparkles className="w-6 h-6 text-amber-500" />;
     }
@@ -172,11 +211,7 @@ const AppGalleryPage: React.FC = () => {
           corePresets
         )}
 
-        {renderSection(
-          "R&D and Experimental Labs",
-          "Heavier or more domain-specific flows – optics, R&D orchestration, and experimental agents.",
-          labPresets
-        )}
+
 
         {renderSection(
           "Infra & Systems",
@@ -184,6 +219,19 @@ const AppGalleryPage: React.FC = () => {
           infraPresets
         )}
 
+
+        {renderSection(
+          "R&D and Experimental Labs",
+          "Heavier or more domain-specific flows – optics, R&D orchestration, and experimental agents.",
+          labPresets
+        )}
+
+        {renderSection(
+          "Productivity Tools",
+          "Planned productivity and research companion apps that showcase AetherGraph as an agent-as-OS platform.",
+          productivityPresets
+        )}
+        
         {/* Optional global placeholder if no apps loaded */}
         {!presets.length && (
           <Card className="flex flex-col items-center justify-center p-12 border-dashed border-border/60 bg-muted/10 text-muted-foreground gap-4">
