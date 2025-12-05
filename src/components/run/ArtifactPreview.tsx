@@ -3,7 +3,6 @@ import { ExternalLink, Download, FileText, Code, Maximize2 } from "lucide-react"
 import { getArtifactContentUrl, fetchArtifactTextContent } from "../../lib/api";
 import type { ArtifactMeta } from "../../lib/types"; 
 import { Button } from "../ui/button";
-import { cn } from "../../lib/utils";
 
 interface ArtifactPreviewProps {
   artifact: ArtifactMeta | null;

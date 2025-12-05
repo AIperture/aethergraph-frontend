@@ -7,9 +7,7 @@ import type {
   MemorySearchHit,
 } from "../../lib/types";
 
-import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { cn } from "../../lib/utils";
 
 interface RunMemoryPanelProps {
   scopeId: string; // convention: run_id

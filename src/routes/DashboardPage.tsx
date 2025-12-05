@@ -33,27 +33,12 @@ const DashboardPage: React.FC = () => {
   const statsOverview = useShellStore((s) => s.statsOverview);
   const graphStats = useShellStore((s) => s.graphStats);
   const artifactStats = useShellStore((s) => s.artifactStats);
-  const memoryStats = useShellStore((s) => s.memoryStats);
+  // const memoryStats = useShellStore((s) => s.memoryStats);
   const loadingStats = useShellStore((s) => s.loadingStats);
   const loadStats = useShellStore((s) => s.loadStats);
   const messagesByRunId = useChannelStore((s) => s.messagesByRunId);
   const getUnreadForRun = useChannelStore((s) => s.getUnreadForRun);
   const getPresetByGraphId = useShellStore((s) => s.getPresetByGraphId);
-
-  // aggregate unread by run
-  const unreadSummary = React.useMemo(() => {
-    if (!runs || runs.length === 0) {
-      return { totalUnread: 0, runsWithUnread: [] as { runId: string; unread: number }[] };
-    }
-
-    const runsWithUnread = runs
-      .map((r) => ({ runId: r.run_id, unread: getUnreadForRun(r.run_id) }))
-      .filter((e) => e.unread > 0);
-
-    const totalUnread = runsWithUnread.reduce((sum, e) => sum + e.unread, 0);
-
-    return { totalUnread, runsWithUnread };
-  }, [runs, getUnreadForRun]);
 
   // Initial load
   React.useEffect(() => {
@@ -114,15 +99,15 @@ const DashboardPage: React.FC = () => {
   }, [artifactStats]);
 
   // ---- Derived memory stats ----
-  const totalMemoryEvents = React.useMemo(() => {
-    if (!memoryStats) return 0;
+  // const totalMemoryEvents = React.useMemo(() => {
+  //   if (!memoryStats) return 0;
 
-    let total = 0;
-    Object.values(memoryStats).forEach((entry) => {
-      total += entry.count ?? 0;
-    });
-    return total;
-  }, [memoryStats]);
+  //   let total = 0;
+  //   Object.values(memoryStats).forEach((entry) => {
+  //     total += entry.count ?? 0;
+  //   });
+  //   return total;
+  // }, [memoryStats]);
 
   // aggregate unread + recent events
   const { runsWithUnread, recentEvents } = React.useMemo(() => {

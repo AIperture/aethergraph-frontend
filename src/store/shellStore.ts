@@ -53,7 +53,6 @@ import {
   fakeMemoryHitsByScope,
 } from "./mock_data";
 
-const EMPTY_ARTIFACTS: ArtifactMeta[] = []; // for defaulting
 
 interface ShellState {
   presets: AppPreset[];

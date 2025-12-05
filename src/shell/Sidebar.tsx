@@ -11,7 +11,6 @@ import {
   Hash, 
   ChevronRight,
   Settings,
-  MoreHorizontal
 } from "lucide-react";
 
 export const Sidebar: React.FC = () => {

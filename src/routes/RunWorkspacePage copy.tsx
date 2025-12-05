@@ -53,7 +53,7 @@ const RunWorkspacePage: React.FC = () => {
 
     const urlTab = (searchParams.get("tab") as TabKey | null) || "nodes";
     const activeTab: TabKey = validTabs.includes(urlTab) ? urlTab : "nodes";
-    const [activeTabState, setActiveTab] = React.useState<TabKey>(activeTab);
+    const [_, setActiveTab] = React.useState<TabKey>(activeTab);
 
     // Poll for new channel events
     React.useEffect(() => {

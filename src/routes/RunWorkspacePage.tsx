@@ -21,7 +21,6 @@ import { RunNodesPanel } from "../components/run/RunNodesPanel";
 import { statusChipClass, formatDate, normalizeStatus } from "../components/run/runStatusUtils";
 import { useChannelStore } from "../store/channelStore";
 import { cn } from "../lib/utils";
-import { getClientId } from "@/utils/clientId";
 
 type TabKey = "nodes" | "timeline" | "artifacts" | "memory" | "channel";
 const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "channel"];
