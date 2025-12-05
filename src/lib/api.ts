@@ -22,8 +22,8 @@ import type {
 
 } from "./types";
 
-const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relative or absolute
 
+import { API_BASE } from "@/config";
 
 // export async function listRuns(): Promise<RunListResponse> {
 //   const res = await fetch(`${API_BASE}/runs`);
@@ -33,6 +33,9 @@ const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relativ
 
 export async function listRuns(): Promise<RunListResponse> {
   const clientId = getClientId();
+  console.log(
+    API_BASE,
+  )
 
   const url = new URL(`${API_BASE}/runs`, window.location.origin);
   url.searchParams.set("client_id", clientId);
