@@ -19,7 +19,7 @@ import type {
   ArtifactStats,
   LLMStats,
   RunChannelEvent
-  
+
 } from "./types";
 
 const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relative or absolute
@@ -30,7 +30,7 @@ const API_BASE = import.meta.env.VITE_AG_API_BASE ?? "/api/v1"; // allow relativ
 //   if (!res.ok) throw new Error("Failed to fetch runs");
 //   return res.json();
 // }
-  
+
 export async function listRuns(): Promise<RunListResponse> {
   const clientId = getClientId();
 
@@ -94,17 +94,27 @@ export async function getGraphDetail(graphId: string): Promise<GraphDetail> {
 export async function listRunArtifacts(
   runId: string
 ): Promise<ArtifactListResponse> {
-  const res = await fetch(`${API_BASE}/runs/${runId}/artifacts`);
+  const clientId = getClientId();
+  const res = await fetch(
+    `${API_BASE}/runs/${runId}/artifacts?client_id=${encodeURIComponent(clientId)}`
+  );
   if (!res.ok) throw new Error("Failed to list run artifacts");
   return res.json();
 }
+
+
 /**
  * Convenience helper: URL to stream artifact content.
  * Use in <img>, <a href>, or fetch() calls.
  */
+
 export function getArtifactContentUrl(artifactId: string): string {
-  return `${API_BASE}/artifacts/${artifactId}/content`;
+  const clientId = getClientId();
+  return `${API_BASE}/artifacts/${artifactId}/content?client_id=${encodeURIComponent(
+    clientId
+  )}`;
 }
+
 
 export async function fetchArtifactTextContent(
   artifactId: string
@@ -120,11 +130,15 @@ export async function pinArtifactApi(
   artifactId: string,
   pinned: boolean
 ): Promise<void> {
-  const res = await fetch(`${API_BASE}/artifacts/${artifactId}/pin`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(pinned),
-  });
+  const clientId = getClientId();
+  const res = await fetch(
+    `${API_BASE}/artifacts/${artifactId}/pin?client_id=${encodeURIComponent(clientId)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(pinned),
+    }
+  );
   if (!res.ok) throw new Error("Failed to pin artifact");
 }
 
@@ -139,6 +153,9 @@ export async function listArtifacts(params?: {
   if (params?.kind) query.set("kind", params.kind);
   if (params?.tags) query.set("tags", params.tags);
   if (params?.limit) query.set("limit", String(params.limit));
+
+  // TEMP: demo-only scoping; later replace with auth/identity
+  query.set("client_id", getClientId());
 
   const res = await fetch(`${API_BASE}/artifacts?${query.toString()}`);
   if (!res.ok) throw new Error("Failed to list artifacts");
@@ -211,7 +228,7 @@ export async function searchMemory(
 export async function getStatsOverview(
   window = "24h"
 ): Promise<StatsOverview> {
-  const search = new URLSearchParams({ window });
+  const search = new URLSearchParams({ window, client_id: getClientId() });
   const res = await fetch(`${API_BASE}/stats/overview?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch stats overview");
   return res.json();
@@ -221,7 +238,7 @@ export async function getGraphStats(
   window = "24h",
   graphId?: string
 ): Promise<GraphStats> {
-  const search = new URLSearchParams({ window });
+  const search = new URLSearchParams({ window, client_id: getClientId() });
   if (graphId) search.set("graph_id", graphId);
   const res = await fetch(`${API_BASE}/stats/graphs?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch graph stats");
@@ -232,7 +249,7 @@ export async function getMemoryStats(
   window = "24h",
   scopeId?: string
 ): Promise<MemoryStats> {
-  const search = new URLSearchParams({ window });
+  const search = new URLSearchParams({ window, client_id: getClientId() });
   if (scopeId) search.set("scope_id", scopeId);
   const res = await fetch(`${API_BASE}/stats/memory?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch memory stats");
@@ -242,7 +259,7 @@ export async function getMemoryStats(
 export async function getArtifactStats(
   window = "24h"
 ): Promise<ArtifactStats> {
-  const search = new URLSearchParams({ window });
+  const search = new URLSearchParams({ window, client_id: getClientId() });
   const res = await fetch(`${API_BASE}/stats/artifacts?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch artifact stats");
   return res.json();
@@ -251,7 +268,7 @@ export async function getArtifactStats(
 export async function getLLMStats(
   window = "24h"
 ): Promise<LLMStats> {
-  const search = new URLSearchParams({ window });
+  const search = new URLSearchParams({ window, client_id: getClientId() });
   const res = await fetch(`${API_BASE}/stats/llm?${search.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch LLM stats");
   return res.json();
@@ -263,10 +280,10 @@ export async function getLLMStats(
 //   runId: string,
 //   sinceTs?: number
 // ): Promise<RunChannelEvent[]> {
-  
+
 //   const params: Record<string, any> = {};
 //   if (sinceTs != null) params.since_ts = sinceTs;
-  
+
 //   const res = await fetch(`/api/v1/runs/${runId}/channel/events?${new URLSearchParams(params)}`, {
 //     method: "GET",
 //   });

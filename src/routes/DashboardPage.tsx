@@ -141,7 +141,7 @@ const DashboardPage: React.FC = () => {
 
     return {
       runsWithUnread,
-      recentEvents: all.slice(0, 3),
+      recentEvents: all.slice(0, 5),
     };
   }, [runs, messagesByRunId, getUnreadForRun]);
 
