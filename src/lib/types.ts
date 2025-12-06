@@ -13,6 +13,7 @@ export type AppPreset = {
   iconKey?: "chat" | "target" | "microscope" | "aperture" | "gamepad" | "sparkles" | "cpu" | "bolt" | "file-pen" | "server" | "database" | "rotate-ccw" | "line-chart" | "trending-up" | "flask" | "cog" | "beaker" | "projector" | "puzzle" | "lightbulb" | "robot" | "brain" | "network" | "chart-pie" | "code" | "cloud" | "shield-check" | "eye" | "book-open" | "hammer" | "wrench" | "bar-chart-2" | "repeat";
   features?: string[];
   demoSteps?: string[];
+  githubUrl?: string;
 };
 
 

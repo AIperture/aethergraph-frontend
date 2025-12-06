@@ -27,12 +27,13 @@ export const initialPresets: AppPreset[] = [
             "Ask questions like \"What have we talked about so far?\" to test memory.",
             "After the session ends, open the Artifacts tab to view the saved summary, and the Memory tab to inspect stored chat turns.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/1_chat_with_memory.py"
     },
 
     {
         id: "channel_wizard",
         name: "Channel Wizard",
-        badge: "Core",
+        badge: "Channel",
         shortDescription:
             "Interactive experiment setup wizard using channels, approvals, and validation.",
         longDescription:
@@ -52,6 +53,7 @@ export const initialPresets: AppPreset[] = [
             "Toggle advanced mode and play with learning rate / debug flags.",
             "After completion, open the Artifacts tab to inspect the saved config.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/2_channel_wizard_interactive_workflow.py"
     },
 
 
@@ -80,6 +82,7 @@ export const initialPresets: AppPreset[] = [
             "Paste a longer paragraph and ask for a summary to trigger summarizer mode.",
             "Open the Memory tab and look for copilot_routing events to see how queries were classified.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/5_simple_copilot_tool_using_router.py"
     },
     {
         id: "toy_concurrency_demo",
@@ -105,6 +108,7 @@ export const initialPresets: AppPreset[] = [
             "Inspect the node logs to see overlapping pick() and work() activity.",
             "Rerun this preset later with different max_concurrency settings (e.g. 1 vs 5) to compare sequential vs parallel behavior.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/method_showcase/7_concurrency/1_graphify_concurrency.py"
     },
 
     {
@@ -131,6 +135,7 @@ export const initialPresets: AppPreset[] = [
             "When the job fails, use the Channel buttons to choose Retry or Abort.",
             "After failure, open the Artifacts tab to inspect the saved error report for the job.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/pattern_examples/1_state_resumption/2_long_job_monitor.py",
     },
 
 
@@ -158,6 +163,7 @@ export const initialPresets: AppPreset[] = [
             "Restart the same run and see the slow node resume from its checkpoint.",
             "Inspect the Artifacts tab to understand how node-level state is persisted.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/6_crash_resume_static_graph.py",
     },
 
 
@@ -167,7 +173,7 @@ export const initialPresets: AppPreset[] = [
     {
         id: "toy_optimization_loop",
         name: "Toy Optimization Loop",
-        badge: "Artifacts",
+        badge: "R&D",
         shortDescription:
             "Simple iterative optimizer with metrics and artifacts over a toy objective.",
         longDescription:
@@ -188,6 +194,7 @@ export const initialPresets: AppPreset[] = [
             "After completion, open the Artifacts tab to inspect checkpoints, final parameters, metrics, and the loss plot.",
             "Optionally open the Memory tab to see logged optimization_step events for each iteration.",
         ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/3_optimization_loop_with_artifacts.py"
     },
 
     // Surrogate Modeling
@@ -269,7 +276,7 @@ export const initialPresets: AppPreset[] = [
     {
         id: "inverse_design_template",
         name: "Inverse Design Template",
-        badge: "R&D Lab",
+        badge: "R&D",
         shortDescription:
             "Template for inverse design workflows using differentiable or black-box solvers with auto-selection of termina",
         longDescription:
