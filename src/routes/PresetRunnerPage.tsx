@@ -14,7 +14,8 @@ import {
   Activity,
   Layers,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Github,
 } from "lucide-react";
 
 
@@ -160,11 +161,26 @@ const PresetRunnerPage: React.FC = () => {
               </ol>
             </div>
 
-            {/* Docs link placeholder */}
-            <div className="flex items-center gap-2 text-[11px] pt-2 opacity-70">
-              <ExternalLink className="w-3 h-3" />
-              <span>Documentation link placeholder</span>
+            {/* Docs / Source links */}
+            <div className="flex flex-wrap items-center gap-3 text-[11px] pt-2 opacity-70">
+              <div className="flex items-center gap-1.5">
+                <ExternalLink className="w-3 h-3" />
+                <span>Documentation link placeholder</span>
+              </div>
+
+              {preset.githubUrl && (
+                <a
+                  href={preset.githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline"
+                >
+                  <Github className="w-3 h-3" />
+                  <span>View source on GitHub</span>
+                </a>
+              )}
             </div>
+
           </CardContent>
 
         </Card>

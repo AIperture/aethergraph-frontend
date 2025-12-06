@@ -1,24 +1,37 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent, 
-  CardFooter 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { 
-  LayoutGrid, 
-  ArrowRight, 
-  Microscope, 
-  Aperture, 
-  Gamepad2, 
+import {
+  LayoutGrid,
+  ArrowRight,
+  Microscope,
+  Aperture,
+  Gamepad2,
   Sparkles,
   MessageCircle,
   Bolt,
-  Cpu
+  Cpu,
+  Server,
+  Database,
+  RotateCcw,
+  Repeat,
+  BarChart2,
+  Wrench,
+  Hammer,
+  Target,
+  LineChart,
+  Brain,
+  BookOpen,
+  FilePen,
+  Github,
 } from "lucide-react";
 import { useShellStore } from "../store/shellStore";
 import type { AppPreset } from "../lib/types";
@@ -31,6 +44,9 @@ const AppGalleryPage: React.FC = () => {
     (p) => p.category === "R&D Lab" || p.category === "Experimental"
   );
   const infraPresets = presets.filter((p) => p.category === "Infra");
+  const productivityPresets = presets.filter(
+    (p) => p.category === "Productivity"
+  );
 
   const renderIcon = (preset: AppPreset) => {
     switch (preset.iconKey) {
@@ -48,6 +64,30 @@ const AppGalleryPage: React.FC = () => {
         return <Sparkles className="w-6 h-6 text-amber-500" />;
       case "bolt":
         return <Bolt className="w-6 h-6 text-amber-500" />;
+      case "server":
+        return <Server className="w-6 h-6 text-gray-500" />;
+      case "database":
+        return <Database className="w-6 h-6 text-cyan-500" />;
+      case "rotate-ccw":
+        return <RotateCcw className="w-6 h-6 text-green-500" />;
+      case "repeat":
+        return <Repeat className="w-6 h-6 text-amber-500" />;
+      case "bar-chart-2":
+        return <BarChart2 className="w-6 h-6 text-indigo-500" />;
+      case "wrench":
+        return <Wrench className="w-6 h-6 text-gray-500" />;
+      case "hammer":
+        return <Hammer className="w-6 h-6 text-red-500" />;
+      case "target":
+        return <Target className="w-6 h-6 text-red-500" />;
+      case "line-chart":
+        return <LineChart className="w-6 h-6 text-indigo-500" />;
+      case "brain":
+        return <Brain className="w-6 h-6 text-purple-500" />;
+      case "book-open":
+        return <BookOpen className="w-6 h-6 text-yellow-500" />;
+      case "file-pen":
+        return <FilePen className="w-6 h-6 text-green-500" />;
       default:
         return <Sparkles className="w-6 h-6 text-amber-500" />;
     }
@@ -63,10 +103,10 @@ const AppGalleryPage: React.FC = () => {
     return (
       <section className="space-y-4">
         <div className="flex flex-col gap-1">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {title}
-            </h2>
-            <p className="text-xs text-muted-foreground/80">{description}</p>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {title}
+          </h2>
+          <p className="text-xs text-muted-foreground/80">{description}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -84,15 +124,15 @@ const AppGalleryPage: React.FC = () => {
                       {renderIcon(preset)}
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="text-[10px] font-medium uppercase tracking-wider px-2"
                       >
                         {preset.badge}
                       </Badge>
                       {isComingSoon && (
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="text-[9px] px-1.5 py-0 h-4 border-dashed text-muted-foreground"
                         >
                           Coming soon
@@ -104,13 +144,13 @@ const AppGalleryPage: React.FC = () => {
                     {preset.name}
                   </CardTitle>
                 </CardHeader>
-                
+
                 <CardContent className="pb-4 flex-1">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {preset.shortDescription}
                   </p>
                 </CardContent>
-                
+
                 <CardFooter className="pt-0">
                   {isComingSoon ? (
                     <Button
@@ -122,19 +162,40 @@ const AppGalleryPage: React.FC = () => {
                       In development
                     </Button>
                   ) : (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-between text-xs h-9 hover:bg-primary hover:text-primary-foreground group-hover:border-primary/50 transition-colors"
-                    >
-                      <Link to={`/apps/${preset.id}`}>
-                        <span>Open App</span>
-                        <ArrowRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      </Link>
-                    </Button>
+                    <div className="flex w-full items-center gap-2">
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 justify-between text-xs h-9 hover:bg-primary hover:text-primary-foreground group-hover:border-primary/50 transition-colors"
+                      >
+                        <Link to={`/apps/${preset.id}`}>
+                          <span>Open App</span>
+                          <ArrowRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      </Button>
+
+                      {preset.githubUrl && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted/70"
+                        >
+                          <a
+                            href={preset.githubUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label="View source on GitHub"
+                          >
+                            <Github className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </CardFooter>
+
               </Card>
             );
           })}
@@ -146,16 +207,16 @@ const AppGalleryPage: React.FC = () => {
   return (
     // Removed fixed height constraint to allow natural page scrolling via PaneLayout
     <div className="flex flex-col gap-8 w-full max-w-[1800px] mx-auto p-4 md:p-6 pb-20">
-      
+
       {/* 1. Header */}
       <div className="shrink-0 flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                <LayoutGrid className="w-5 h-5" />
+              <LayoutGrid className="w-5 h-5" />
             </div>
             <h1 className="text-xl font-semibold text-foreground tracking-tight">
-                App Gallery
+              App Gallery
             </h1>
           </div>
           <p className="text-xs text-muted-foreground ml-9 max-w-2xl">
@@ -172,6 +233,15 @@ const AppGalleryPage: React.FC = () => {
           corePresets
         )}
 
+
+
+        {renderSection(
+          "Infra & Systems",
+          "System-level demos for job orchestration, monitoring, and observability.",
+          infraPresets
+        )}
+
+
         {renderSection(
           "R&D and Experimental Labs",
           "Heavier or more domain-specific flows – optics, R&D orchestration, and experimental agents.",
@@ -179,9 +249,9 @@ const AppGalleryPage: React.FC = () => {
         )}
 
         {renderSection(
-          "Infra & Systems",
-          "System-level demos for job orchestration, monitoring, and observability.",
-          infraPresets
+          "Productivity Tools",
+          "Planned productivity and research companion apps that showcase AetherGraph as an agent-as-OS platform.",
+          productivityPresets
         )}
 
         {/* Optional global placeholder if no apps loaded */}
