@@ -21,9 +21,10 @@ import { RunNodesPanel } from "../components/run/RunNodesPanel";
 import { statusChipClass, formatDate, normalizeStatus } from "../components/run/runStatusUtils";
 import { useChannelStore } from "../store/channelStore";
 import { cn } from "../lib/utils";
+import { RunVizPanel } from "@/components/run/runVizPanel";
 
-type TabKey = "nodes" | "timeline" | "artifacts" | "memory" | "channel";
-const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "channel"];
+type TabKey = "nodes" | "timeline" | "artifacts" | "memory" | "viz" | "channel";
+const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "viz", "channel"];
 
 const RunWorkspacePage: React.FC = () => {
   const { runId } = useParams<{ runId: string }>();
@@ -55,6 +56,7 @@ const RunWorkspacePage: React.FC = () => {
       next.set("tab", tab);
       return next;
     });
+    
   };
 
   // --- Polling Logic ---
@@ -152,7 +154,6 @@ const RunWorkspacePage: React.FC = () => {
 
   const setRunParamsForRun = useShellStore((s) => s.setRunParamsForRun);
 
-
   // --- Handlers (Original Logic Preserved) ---
   const handleCancel = async () => {
     setIsActing(true);
@@ -190,9 +191,16 @@ const RunWorkspacePage: React.FC = () => {
   };
 
   const handleStartOver = async () => {
-    if (!graphId || !runParams) return;
+    console.log("Starting over run", runId, graphId, runParams);
+
+    if (!graphId || !runParams) {
+      toast.error("Cannot start over: missing graph or run parameters");
+      return;
+    }
     setIsActing(true);
+
     try {
+      console.log(runParams);
       const body: RunCreateRequest = {
         run_id: null,
         inputs: runInputs,
@@ -222,6 +230,7 @@ const RunWorkspacePage: React.FC = () => {
     { key: "timeline", label: "Timeline" },
     { key: "artifacts", label: "Artifacts" },
     { key: "memory", label: "Memory" },
+    { key: "viz", label: "Viz" },
     { key: "channel", label: "Channel" },
   ];
 
@@ -364,6 +373,12 @@ const RunWorkspacePage: React.FC = () => {
         {activeTab === "memory" && runId && (
           <div className="h-full w-full">
             <RunMemoryPanel scopeId={runId} />
+          </div>
+        )}
+
+        {activeTab === "viz" && runId && (
+          <div className="h-full w-full">
+            <RunVizPanel runId={runId} />
           </div>
         )}
 

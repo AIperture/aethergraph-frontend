@@ -296,3 +296,35 @@ export interface RunChannelEvent {
   ts: number; // unix timestamp (seconds or ms, but treat as number)
 }
 
+
+export type VizKind = "scalar" | "vector" | "matrix" | "image";
+export type VizMode = "append" | "replace";
+
+export interface VizPoint {
+  step: number;
+  value?: number | null;
+  vector?: number[] | null;
+  matrix?: number[][] | null;
+  artifact_id?: string | null;
+  created_at?: string | null; // ISO string
+}
+
+export interface VizTrack {
+  track_id: string;
+  figure_id?: string | null;
+  node_id?: string | null;
+  viz_kind: VizKind;
+  mode: VizMode;
+  meta?: Record<string, any> | null;
+  points: VizPoint[];
+}
+
+export interface VizFigure {
+  figure_id?: string | null;
+  tracks: VizTrack[];
+}
+
+export interface RunVizResponse {
+  run_id: string;
+  figures: VizFigure[];
+}

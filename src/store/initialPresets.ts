@@ -110,7 +110,32 @@ export const initialPresets: AppPreset[] = [
         ],
         githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/method_showcase/7_concurrency/1_graphify_concurrency.py"
     },
-
+    {
+        id: "viz_demo_complete",
+        name: "Vis Demo",
+        badge: "Viz",
+        shortDescription:
+            "Interactive visualization tool for exploring complex data.",
+        longDescription:
+            "This preset demonstrates AetherGraph’s visualization capabilities. It allows users to explore and interact with complex data through a visual interface.",
+        graphId: "viz_demo_complete",
+        category: "Core",
+        status: "available",
+        iconKey: "chat",
+        features: [
+            "Seeds prior chat turns so the agent can recall past context on first run.",
+            "Streams an interactive chat loop over the Channel service.",
+            "Logs every turn into Memory for later inspection and analysis.",
+            "Generates an LLM-based session summary and saves it as an artifact.",
+        ],
+        demoSteps: [
+            "Click \"Configure & Start\" to launch a new run.",
+            "Open the Channel panel and chat with the agent as you normally would.",
+            "Ask questions like \"What have we talked about so far?\" to test memory.",
+            "After the session ends, open the Artifacts tab to view the saved summary, and the Memory tab to inspect stored chat turns.",
+        ],
+        githubUrl: "https://github.com/AIperture/aethergraph-examples/blob/main/demo_examples/1_chat_with_memory.py"
+    },
     {
         id: "mock_job_monitor",
         name: "Mock Job Monitor",

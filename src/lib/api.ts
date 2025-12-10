@@ -18,18 +18,15 @@ import type {
   MemoryStats,
   ArtifactStats,
   LLMStats,
-  RunChannelEvent
+  RunChannelEvent,
+  VizKind,
+  RunVizResponse
 
 } from "./types";
 
 
 import { API_BASE } from "@/config";
 
-// export async function listRuns(): Promise<RunListResponse> {
-//   const res = await fetch(`${API_BASE}/runs`);
-//   if (!res.ok) throw new Error("Failed to fetch runs");
-//   return res.json();
-// }
 
 export async function listRuns(): Promise<RunListResponse> {
   const clientId = getClientId();
@@ -355,4 +352,36 @@ export async function sendRunChannelMessage(
   });
   if (!res.ok) throw new Error("Failed to send channel message");
   return res.json();
+}
+
+
+export interface FetchRunVizOptions {
+  kinds?: VizKind[]; // optional filter: ["scalar", "image"]
+}
+
+/**
+ * Fetch visualization data for a run from /runs/{run_id}/viz.
+ * Returns structured data (figures/tracks/points), not images.
+ */
+export async function fetchRunViz(
+  runId: string,
+  opts: FetchRunVizOptions = {},
+): Promise<RunVizResponse> {
+  const clientId = getClientId();
+
+  const url = new URL(`${API_BASE}/runs/${runId}/viz`, window.location.origin);
+  if (clientId) {
+    url.searchParams.set("client_id", clientId);
+  }
+
+  if (opts.kinds && opts.kinds.length > 0) {
+    url.searchParams.set("viz_kinds", opts.kinds.join(","));
+  }
+
+  const res = await fetch(url.toString());
+  if (!res.ok) {
+    throw new Error(`Failed to fetch viz for run ${runId}: ${res.status}`);
+  }
+
+  return res.json() as Promise<RunVizResponse>;
 }
