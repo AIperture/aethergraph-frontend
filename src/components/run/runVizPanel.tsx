@@ -515,7 +515,7 @@ const VectorTrackChart: React.FC<VectorTrackChartProps> = ({
   if (!filteredData.length) return <div className="text-[11px] text-muted-foreground p-4">No data to display.</div>;
 
   const isLine = chartType === "line";
-  const seriesLabels = ((track.meta as any)?.series_labels as string[] | undefined) ?? keys.map((k, idx) => `dim[${idx}]`);
+  const seriesLabels = ((track.meta as any)?.series_labels as string[] | undefined) ?? keys.map((idx) => `dim[${idx}]`);
 
   return (
     <ResponsiveContainer width="100%" height="100%">

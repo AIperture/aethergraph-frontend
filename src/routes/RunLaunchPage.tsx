@@ -113,6 +113,7 @@ const RunLaunchPage: React.FC = () => {
         inputs,
         run_config: runConfig,
         tags: [preset.id, `client:${getClientId()}`],
+        appId: preset.id,
       };
 
       const resp = await startRun(graphId, body);

@@ -70,13 +70,14 @@ interface VizStoreState {
  * We scope by (figure_id, node_id, track_id) to avoid collisions.
  */
 function makeTrackKey(
+  runId: string,
   figureId: string | null | undefined,
   nodeId: string | null | undefined,
   trackId: string,
 ): string {
   const fig = figureId ?? "default";
   const node = nodeId ?? "node";
-  return `${fig}::${node}::${trackId}`;
+  return `${runId}::${fig}::${node}::${trackId}`;
 }
 
 export const useVizStore = create<VizStoreState>((set, get) => ({
@@ -278,5 +279,5 @@ export function buildTrackKeyFromTrack(
   nodeId: string | null | undefined,
   trackId: string,
 ): string {
-  return makeTrackKey(figureId, nodeId, trackId);
+  return makeTrackKey(runId, figureId, nodeId, trackId);
 }

@@ -86,6 +86,7 @@ interface ShellState {
   // selectors
   getPresetById: (id: string | undefined) => AppPreset | undefined;
   getPresetByGraphId: (graphId: string | undefined) => AppPreset | undefined;
+  getPresetForRun: (runId: string) => AppPreset | undefined;
   getRunsByAppId: (appId: string | undefined) => RunSummary[];
   getRunById: (runId: string | undefined) => RunSummary | undefined;
   getRunSnapshot: (runId: string | undefined) => RunSnapshot | undefined;
@@ -215,6 +216,11 @@ export const useShellStore = create<ShellState>((set, get) => {
 
     getPresetByGraphId: (graphId) =>
       graphId ? get().presets.find((p) => p.graphId === graphId) : undefined,
+    getPresetForRun: (runId) => {
+      const run = get().getRunById(runId);
+      if (!run) return undefined;
+      return get().getPresetByGraphId(run.graph_id);
+    },
 
     getRunsByAppId: (appId) => {
       if (!appId) return get().runs;
@@ -307,6 +313,8 @@ export const useShellStore = create<ShellState>((set, get) => {
         inputs: {},
         run_config: {},
         tags: [preset.id, `client:${clientId}`],
+        appId: preset.id,
+        appName: preset.name,
       };
       const resp = await startRun(preset.graphId, body);
       const summary: RunSummary = {
@@ -315,7 +323,7 @@ export const useShellStore = create<ShellState>((set, get) => {
         status: resp.status,
         started_at: resp.started_at,
         finished_at: resp.finished_at,
-        tags: body.tags,
+        tags: body.tags!,
         appId: preset.id,
         appName: preset.name,
       };

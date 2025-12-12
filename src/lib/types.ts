@@ -42,11 +42,26 @@ export interface RunSummary {
   appName?: string;
 }
 
+export type RunOrigin = "app" | "chat" | "playground" | "api" | "system";
+export type RunVisibility = "normal" | "inline" | "hidden";
+export type RunImportance = "normal" | "ephemeral";
+
 export interface RunCreateRequest {
   run_id?: string | null;
   inputs: Record<string, any>;
-  run_config: Record<string, any>;
-  tags: string[];
+  run_config?: Record<string, any>;
+  tags?: string[];
+  session_id?: string | null;
+
+  // origin/visibility/importance (all optional; backend will default)
+  origin?: RunOrigin | null;
+  visibility?: RunVisibility | null;
+  importance?: RunImportance | null;
+
+  // agent / app info (use JSON aliases to match backend: agentId/appId/appName)
+  agentId?: string | null;
+  appId?: string | null;
+  appName?: string | null;
 }
 
 export interface RunCreateResponse {

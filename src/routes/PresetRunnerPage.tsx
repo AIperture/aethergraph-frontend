@@ -36,6 +36,8 @@ const PresetRunnerPage: React.FC = () => {
   const handleStartRun = () => {
     if (!appId) return;
     navigate(`/apps/${appId}/run`);
+
+  
   };
 
   // FIX: Fetch runs on mount so data appears even after a hard refresh

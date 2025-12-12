@@ -28,8 +28,11 @@ const validTabs: TabKey[] = ["nodes", "timeline", "artifacts", "memory", "viz", 
 
 const RunWorkspacePage: React.FC = () => {
   const { runId } = useParams<{ runId: string }>();
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  const preset = useShellStore((s) => s.getPresetForRun(runId || "")); 
 
   const loadRunSnapshot = useShellStore((s) => s.loadRunSnapshot);
   const cancelRunById = useShellStore((s) => s.cancelRunById);
@@ -178,7 +181,8 @@ const RunWorkspacePage: React.FC = () => {
         run_id: runId,
         inputs: runInputs,
         run_config: runConfig,
-        tags: runTags
+        tags: runTags,
+        appId: preset?.id,
       };
 
       toast("Resuming run", { description: "Restarting from failed nodes…" });
@@ -206,6 +210,7 @@ const RunWorkspacePage: React.FC = () => {
         inputs: runInputs,
         run_config: runConfig,
         tags: runTags,
+        appId: preset?.id,
       };
       toast("Starting new run...");
       const resp = await startRun(graphId, body);
@@ -217,6 +222,7 @@ const RunWorkspacePage: React.FC = () => {
         inputs: runInputs,
         run_config: runConfig,
         tags: runTags,
+        appId: preset?.id,
       });
     } catch (err: any) {
       toast.error("Failed to start new run", { description: err?.message });
